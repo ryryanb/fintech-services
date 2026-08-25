@@ -1,0 +1,42 @@
+services:
+
+  postgres:
+    image: postgres:13
+
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_PASSWORD: saas_password
+      POSTGRES_USER: saas_user
+
+    ports:
+      - "5436:5432"
+
+    networks:
+      - auth-network
+
+  auth-service:
+    image: auth-service:latest
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+
+    ports:
+      - "8086:8086"
+
+    depends_on:
+      - postgres
+
+    networks:
+      - auth-network
+
+networks:
+  auth-network:
+    driver: bridge

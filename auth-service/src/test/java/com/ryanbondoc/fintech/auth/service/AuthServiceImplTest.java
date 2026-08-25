@@ -1,0 +1,274 @@
+package com.ryanbondoc.fintech.auth.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.ryanbondoc.fintech.auth.dto.RegisterRequest;
+import com.ryanbondoc.fintech.auth.dto.RegisterResponse;
+import com.ryanbondoc.fintech.auth.entity.User;
+import com.ryanbondoc.fintech.auth.enums.UserStatus;
+import com.ryanbondoc.fintech.auth.exception.EmailAlreadyExistsException;
+import com.ryanbondoc.fintech.auth.repository.UserRepository;
+
+class AuthServiceImplTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    private AuthServiceImpl authService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        authService = new AuthServiceImpl(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    @Test
+    void register_shouldCreateUser() {
+
+        // Given
+        RegisterRequest request = new RegisterRequest(
+                "ryan@example.com",
+                "SecurePassword123"
+        );
+
+        UUID generatedId = UUID.randomUUID();
+        Instant createdAt = Instant.now();
+
+        when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("SecurePassword123"))
+                .thenReturn("$2a$10$hashedPassword");
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> {
+                    User user = invocation.getArgument(0);
+
+                    // Simulate JPA-generated ID.
+                    setId(user, generatedId);
+
+                    return user;
+                });
+
+        // When
+        RegisterResponse response = authService.register(request);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.id()).isEqualTo(generatedId);
+        assertThat(response.email()).isEqualTo("ryan@example.com");
+        assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(response.createdAt()).isNotNull();
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void register_shouldHashPasswordBeforeSaving() {
+
+        // Given
+        String plaintextPassword = "SecurePassword123";
+        String passwordHash = "$2a$10$hashedPassword";
+
+        RegisterRequest request = new RegisterRequest(
+                "ryan@example.com",
+                plaintextPassword
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode(plaintextPassword))
+                .thenReturn(passwordHash);
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor =
+                ArgumentCaptor.forClass(User.class);
+
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+
+        assertThat(savedUser.getPasswordHash())
+                .isEqualTo(passwordHash);
+
+        assertThat(savedUser.getPasswordHash())
+                .isNotEqualTo(plaintextPassword);
+
+        verify(passwordEncoder).encode(plaintextPassword);
+    }
+
+    @Test
+    void register_shouldNormalizeEmail() {
+
+        // Given
+        RegisterRequest request = new RegisterRequest(
+                "  RYAN@EXAMPLE.COM  ",
+                "SecurePassword123"
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("SecurePassword123"))
+                .thenReturn("$2a$10$hashedPassword");
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor =
+                ArgumentCaptor.forClass(User.class);
+
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+
+        assertThat(savedUser.getEmail())
+                .isEqualTo("ryan@example.com");
+    }
+
+    @Test
+    void register_shouldRejectDuplicateEmail() {
+
+        // Given
+        RegisterRequest request = new RegisterRequest(
+                "  RYAN@EXAMPLE.COM  ",
+                "SecurePassword123"
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+                .thenReturn(true);
+
+        // When / Then
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(EmailAlreadyExistsException.class)
+                .hasMessage("Email already registered: ryan@example.com");
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(any(String.class));
+    }
+
+    @Test
+    void register_shouldCreateUserWithActiveStatus() {
+
+        // Given
+        RegisterRequest request = new RegisterRequest(
+                "ryan@example.com",
+                "SecurePassword123"
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("SecurePassword123"))
+                .thenReturn("$2a$10$hashedPassword");
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        authService.register(request);
+
+        // Then
+        ArgumentCaptor<User> userCaptor =
+                ArgumentCaptor.forClass(User.class);
+
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+
+        assertThat(savedUser.getStatus())
+                .isEqualTo(UserStatus.ACTIVE);
+    }
+
+    /**
+     * User.id is normally generated by JPA.
+     *
+     * Since this is a unit test and there is no JPA persistence context,
+     * we simulate the generated UUID using reflection.
+     */
+    private void setId(User user, UUID id) {
+        try {
+            var field = User.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(user, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+void register_shouldStorePasswordAsHash() {
+
+    // Given
+    PasswordEncoder realPasswordEncoder = new BCryptPasswordEncoder();
+
+    AuthServiceImpl service = new AuthServiceImpl(
+            userRepository,
+            realPasswordEncoder
+    );
+
+    RegisterRequest request = new RegisterRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.existsByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(false);
+
+    when(userRepository.save(any(User.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+    // When
+    service.register(request);
+
+    // Then
+    ArgumentCaptor<User> userCaptor =
+            ArgumentCaptor.forClass(User.class);
+
+    verify(userRepository).save(userCaptor.capture());
+
+    User savedUser = userCaptor.getValue();
+
+    assertThat(savedUser.getPasswordHash())
+            .isNotEqualTo("SecurePassword123");
+
+    assertThat(realPasswordEncoder.matches(
+            "SecurePassword123",
+            savedUser.getPasswordHash()
+    )).isTrue();
+}
+}
