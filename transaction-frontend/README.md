@@ -1,70 +1,371 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# FinTech Core — Transaction Frontend
 
-## Available Scripts
+The Transaction Frontend is the web application for FinTech Core.
 
-In the project directory, you can run:
+It provides a user-facing interface for interacting with the FinTech Core backend services. The frontend is implemented as a React application and is designed to evolve alongside the platform's microservices architecture.
 
-### `npm start`
+The current application originated from the earlier FinTech Core implementation, where transaction and payment functionality were exposed through the transaction service.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+As FinTech Core is migrated to the new architecture, frontend functionality will gradually be updated to interact with the dedicated backend services.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Architecture
 
-### `npm test`
+The frontend sits at the presentation layer of FinTech Core:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```text
+                    Customer
+                       │
+                       ▼
+              Transaction Frontend
+                    (React)
+                       │
+                       ▼
+                  API Gateway
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+     Auth Service  Customer Service  Transaction Service
+                                      │
+                                      ▼
+                                Payment Service
+````
 
-### `npm run build`
+Additional services, including AI-powered financial services, will be integrated as the platform evolves.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The frontend is responsible for presentation and user interaction.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Backend services remain responsible for business rules, financial data, validation, and transaction processing.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Current Role
 
-### `npm run eject`
+The frontend currently serves as the user interface for the existing FinTech Core functionality.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The application originated around payment and transaction workflows and is being retained as the frontend foundation while the backend architecture is being reorganized.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The new architecture separates responsibilities that were previously combined in the transaction service.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Previous Architecture
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```text
+Frontend
+   │
+   ▼
+Transaction Service
+   ├── Transaction functionality
+   ├── Payment functionality
+   ├── Stripe integration
+   └── PayPal integration
+```
 
-## Learn More
+### New Architecture
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+Frontend
+   │
+   ▼
+API Gateway
+   │
+   ├── Auth Service
+   ├── Customer Service
+   ├── Transaction Service
+   └── Payment Service
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+In the new architecture, Stripe and PayPal functionality belongs to the dedicated **Payment Service** rather than the Transaction Service.
 
-### Code Splitting
+This separation allows transaction management and payment processing to evolve independently.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Technology Stack
 
-### Analyzing the Bundle Size
+* React
+* JavaScript
+* HTML/CSS
+* Create React App
+* npm
+* Docker
+* Nginx
+* Vercel
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Project Structure
 
-### Making a Progressive Web App
+```text
+transaction-frontend/
+├── public/             # Static public assets
+├── src/                # React application source code
+├── Dockerfile          # Container configuration
+├── nginx.conf          # Nginx configuration
+├── vercel.json         # Vercel deployment configuration
+├── package.json        # Node.js project configuration
+├── package-lock.json   # Dependency lock file
+└── README.md
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Getting Started
 
-### Advanced Configuration
+### Prerequisites
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+* Node.js
+* npm
 
-### Deployment
+### Install Dependencies
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+npm install
+```
 
-### `npm run build` fails to minify
+### Start the Development Server
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+npm start
+```
+
+The application will be available at:
+
+```text
+http://localhost:3000
+```
+
+The development server automatically reloads when source files are modified.
+
+## Testing
+
+Run the frontend test suite with:
+
+```bash
+npm test
+```
+
+The project uses the testing infrastructure provided by Create React App.
+
+## Production Build
+
+Create an optimized production build with:
+
+```bash
+npm run build
+```
+
+The production files are generated in:
+
+```text
+build/
+```
+
+## Docker
+
+The frontend can also be built and run as a Docker container.
+
+Build the image:
+
+```bash
+docker build -t fintech-core-frontend .
+```
+
+Run the container:
+
+```bash
+docker run -p 3000:80 fintech-core-frontend
+```
+
+The application can then be accessed at:
+
+```text
+http://localhost:3000
+```
+
+## Deployment
+
+The project includes Vercel configuration and can be deployed as a frontend application.
+
+Production deployment:
+
+```text
+https://fintech-core-frontend.vercel.app
+```
+
+## Frontend Responsibilities
+
+The frontend is responsible for:
+
+* Presenting financial information to customers
+* Collecting user input
+* Calling backend APIs
+* Displaying transaction information
+* Displaying payment workflows
+* Handling user interaction
+* Presenting validation and error messages
+* Providing a foundation for future personal-finance functionality
+
+The frontend should **not** be responsible for implementing authoritative financial business rules.
+
+For example, the frontend should not determine whether a payment is actually successful. Instead:
+
+```text
+Customer
+   │
+   ▼
+Frontend
+   │
+   │ payment request
+   ▼
+Payment Service
+   │
+   ├── Validate request
+   ├── Process payment
+   ├── Communicate with payment provider
+   └── Record payment result
+   │
+   ▼
+Frontend
+   │
+   ▼
+Display result
+```
+
+This keeps the backend services authoritative.
+
+## Planned Frontend Evolution
+
+As the new FinTech Core architecture is implemented, the frontend will gradually support additional customer-facing capabilities.
+
+Planned areas include:
+
+### Customer Management
+
+* Customer registration
+* Customer profile
+* Profile updates
+* Customer information display
+
+### Financial Accounts
+
+* Connected financial accounts
+* Account balances
+* Account information
+
+### Transactions
+
+* Transaction history
+* Transaction details
+* Spending categories
+* Spending summaries
+
+### Payments
+
+* Payment initiation
+* Payment status
+* Payment history
+* Payment provider interactions
+
+### Financial Goals
+
+* Create financial goals
+* Track progress
+* View goal history
+
+### Alerts
+
+* Financial alerts
+* Transaction notifications
+* Spending alerts
+
+### AI Financial Assistant
+
+The frontend will eventually provide an interface for interacting with the AI financial assistant.
+
+Example interactions:
+
+```text
+"How much did I spend on food this month?"
+
+"Why did my spending increase this month?"
+
+"Can I afford to spend ₱5,000 this weekend?"
+
+"Show me my largest recurring expenses."
+```
+
+The AI assistant will obtain financial information through backend services rather than directly accessing the database.
+
+## Relationship with Backend Services
+
+The frontend is intended to communicate with backend services through APIs.
+
+```text
+                    Frontend
+                       │
+                       ▼
+                  API Gateway
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+        ▼              ▼              ▼
+   Auth Service  Customer Service  Transaction Service
+                                      │
+                                      ▼
+                                Payment Service
+```
+
+Each service owns its own business responsibilities.
+
+For example:
+
+| Responsibility          | Service              |
+| ----------------------- | -------------------- |
+| Authentication          | Auth Service         |
+| Customer information    | Customer Service     |
+| Financial transactions  | Transaction Service  |
+| Payment processing      | Payment Service      |
+| AI financial assistance | AI Service           |
+| User interface          | Transaction Frontend |
+
+## Important Architectural Note
+
+This repository is named `transaction-frontend` because it originated from the earlier transaction/payment implementation of FinTech Core.
+
+The name does **not** mean that the frontend will only support transactions.
+
+As the platform evolves into an AI-powered personal finance and payment platform, the frontend will become the primary customer-facing application for capabilities provided by the various FinTech Core services.
+
+The backend architecture is being separated so that each service has a clear responsibility.
+
+In particular, payment-provider functionality that previously existed inside `transaction-service` is being moved into the dedicated `payment-service`.
+
+## Development Approach
+
+Frontend user stories will be implemented as the corresponding backend capabilities become available.
+
+For example:
+
+```text
+CUS-001
+Register Customer
+       │
+       ▼
+Customer Service API
+       │
+       ▼
+Frontend Registration Screen
+```
+
+This allows backend domain functionality and APIs to be established before building the corresponding user interface.
+
+The frontend therefore evolves incrementally with the platform rather than attempting to implement the entire application at once.
+
+## Related Services
+
+FinTech Core consists of multiple services:
+
+* `fastapi` — Authentication Service
+* `customer-service` — Customer management
+* `transaction-service` — Financial transaction management
+* `payment-service` — Payment processing and payment-provider integrations
+* `transaction-frontend` — Customer-facing React application
+
+See the individual service README files for service-specific architecture, APIs, setup instructions, and testing information.
+
+## License
+
+This project is licensed under the MIT License.
+
