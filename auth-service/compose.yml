@@ -28,6 +28,11 @@ services:
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt-private.pem
+
+    volumes:
+      - ./keys/jwt-private.pem:/app/keys/jwt-private.pem:ro
+
     ports:
       - "8086:8086"
 

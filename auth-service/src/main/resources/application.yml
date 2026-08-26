@@ -18,3 +18,8 @@ spring:
 
 server:
   port: 8086
+
+security:
+  jwt:
+    private-key-path: ${JWT_PRIVATE_KEY_PATH}
+    expiration-seconds: 900

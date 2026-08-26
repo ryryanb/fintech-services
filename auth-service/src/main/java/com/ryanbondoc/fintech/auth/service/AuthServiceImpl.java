@@ -7,25 +7,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ryanbondoc.fintech.auth.dto.LoginRequest;
+import com.ryanbondoc.fintech.auth.dto.LoginResponse;
 import com.ryanbondoc.fintech.auth.dto.RegisterRequest;
 import com.ryanbondoc.fintech.auth.dto.RegisterResponse;
 import com.ryanbondoc.fintech.auth.entity.User;
 import com.ryanbondoc.fintech.auth.enums.UserStatus;
 import com.ryanbondoc.fintech.auth.exception.EmailAlreadyExistsException;
+import com.ryanbondoc.fintech.auth.exception.InvalidCredentialsException;
 import com.ryanbondoc.fintech.auth.repository.UserRepository;
+import com.ryanbondoc.fintech.auth.security.JwtService;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthServiceImpl(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -57,6 +64,38 @@ public class AuthServiceImpl implements AuthService {
                 savedUser.getEmail(),
                 savedUser.getStatus(),
                 savedUser.getCreatedAt()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LoginResponse login(LoginRequest request) {
+
+        String email = request.email()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(InvalidCredentialsException::new);
+
+        if (!passwordEncoder.matches(
+                request.password(),
+                user.getPasswordHash()
+        )) {
+            throw new InvalidCredentialsException();
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new InvalidCredentialsException();
+        }
+
+        String accessToken =
+                jwtService.generateAccessToken(user);
+
+        return new LoginResponse(
+                accessToken,
+                "Bearer",
+                jwtService.getExpirationSeconds()
         );
     }
 }

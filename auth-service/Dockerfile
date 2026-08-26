@@ -4,9 +4,16 @@ FROM maven:3.9.11-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
+# Copy Maven descriptor first
 COPY pom.xml .
+
+# Download dependencies
+RUN mvn dependency:go-offline -B
+
+# Copy source code
 COPY src ./src
 
+# Build application
 RUN mvn clean package -DskipTests
 
 # --------- Stage 2: Run the application ----------

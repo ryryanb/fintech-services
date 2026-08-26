@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.ryanbondoc.fintech.auth.dto.ErrorResponse;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -41,4 +43,16 @@ public class GlobalExceptionHandler {
                         "message", message
                 ));
     }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+        InvalidCredentialsException exception
+) {
+    return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse(
+                    "INVALID_CREDENTIALS",
+                    exception.getMessage()
+            ));
+}
 }

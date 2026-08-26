@@ -3,11 +3,13 @@ package com.ryanbondoc.fintech.auth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,12 +20,16 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.ryanbondoc.fintech.auth.dto.LoginRequest;
+import com.ryanbondoc.fintech.auth.dto.LoginResponse;
 import com.ryanbondoc.fintech.auth.dto.RegisterRequest;
 import com.ryanbondoc.fintech.auth.dto.RegisterResponse;
 import com.ryanbondoc.fintech.auth.entity.User;
 import com.ryanbondoc.fintech.auth.enums.UserStatus;
 import com.ryanbondoc.fintech.auth.exception.EmailAlreadyExistsException;
+import com.ryanbondoc.fintech.auth.exception.InvalidCredentialsException;
 import com.ryanbondoc.fintech.auth.repository.UserRepository;
+import com.ryanbondoc.fintech.auth.security.JwtService;
 
 class AuthServiceImplTest {
 
@@ -33,16 +39,21 @@ class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+private JwtService jwtService;
+
     private AuthServiceImpl authService;
+
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
         authService = new AuthServiceImpl(
-                userRepository,
-                passwordEncoder
-        );
+        userRepository,
+        passwordEncoder,
+        jwtService
+);
     }
 
     @Test
@@ -237,9 +248,10 @@ void register_shouldStorePasswordAsHash() {
     PasswordEncoder realPasswordEncoder = new BCryptPasswordEncoder();
 
     AuthServiceImpl service = new AuthServiceImpl(
-            userRepository,
-            realPasswordEncoder
-    );
+        userRepository,
+        realPasswordEncoder,
+        jwtService
+);
 
     RegisterRequest request = new RegisterRequest(
             "ryan@example.com",
@@ -271,4 +283,324 @@ void register_shouldStorePasswordAsHash() {
             savedUser.getPasswordHash()
     )).isTrue();
 }
+
+@Test
+void login_shouldAuthenticateUserAndReturnAccessToken() {
+
+    // Given
+    UUID userId = UUID.randomUUID();
+    Instant createdAt = Instant.now();
+
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.ACTIVE,
+            createdAt
+    );
+
+    setId(user, userId);
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(true);
+
+    when(jwtService.generateAccessToken(user))
+            .thenReturn("eyJhbGciOiJIUzI1NiJ9.test-token");
+
+    when(jwtService.getExpirationSeconds())
+            .thenReturn(900L);
+
+    // When
+    LoginResponse response = authService.login(request);
+
+    // Then
+    assertThat(response).isNotNull();
+    assertThat(response.accessToken())
+            .isEqualTo("eyJhbGciOiJIUzI1NiJ9.test-token");
+    assertThat(response.tokenType())
+            .isEqualTo("Bearer");
+    assertThat(response.expiresIn())
+            .isEqualTo(900);
+
+    verify(userRepository)
+            .findByEmailIgnoreCase("ryan@example.com");
+
+    verify(passwordEncoder)
+            .matches(
+                    "SecurePassword123",
+                    "$2a$10$hashedPassword"
+            );
+
+    verify(jwtService)
+            .generateAccessToken(user);
+}
+
+@Test
+void login_shouldVerifyPasswordUsingStoredHash() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$storedPasswordHash",
+            UserStatus.ACTIVE,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$storedPasswordHash"
+    )).thenReturn(true);
+
+    when(jwtService.generateAccessToken(user))
+            .thenReturn("test-token");
+
+    when(jwtService.getExpirationSeconds())
+            .thenReturn(900L);
+
+    // When
+    authService.login(request);
+
+    // Then
+    verify(passwordEncoder).matches(
+            eq("SecurePassword123"),
+            eq("$2a$10$storedPasswordHash")
+    );
+}@Test
+void login_shouldNormalizeEmail() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.ACTIVE,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "  RYAN@EXAMPLE.COM  ",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(true);
+
+    when(jwtService.generateAccessToken(user))
+            .thenReturn("test-token");
+
+    when(jwtService.getExpirationSeconds())
+            .thenReturn(900L);
+
+    // When
+    authService.login(request);
+
+    // Then
+    verify(userRepository)
+            .findByEmailIgnoreCase("ryan@example.com");
+}
+
+@Test
+void login_shouldRejectUnknownEmail() {
+
+    // Given
+    LoginRequest request = new LoginRequest(
+            "unknown@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("unknown@example.com"))
+            .thenReturn(Optional.empty());
+
+    // When / Then
+    assertThatThrownBy(() -> authService.login(request))
+            .isInstanceOf(InvalidCredentialsException.class)
+            .hasMessage("Invalid email or password");
+
+    verify(passwordEncoder, never())
+            .matches(any(String.class), any(String.class));
+
+    verify(jwtService, never())
+            .generateAccessToken(any(User.class));
+}
+
+@Test
+void login_shouldRejectIncorrectPassword() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.ACTIVE,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "WrongPassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "WrongPassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(false);
+
+    // When / Then
+    assertThatThrownBy(() -> authService.login(request))
+            .isInstanceOf(InvalidCredentialsException.class)
+            .hasMessage("Invalid email or password");
+
+    verify(passwordEncoder)
+            .matches(
+                    "WrongPassword123",
+                    "$2a$10$hashedPassword"
+            );
+
+    verify(jwtService, never())
+            .generateAccessToken(any(User.class));
+}
+
+@Test
+void login_shouldRejectInactiveUser() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.DISABLED,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(true);
+
+    // When / Then
+    assertThatThrownBy(() -> authService.login(request))
+            .isInstanceOf(InvalidCredentialsException.class)
+            .hasMessage("Invalid email or password");
+
+    verify(passwordEncoder)
+            .matches(
+                    "SecurePassword123",
+                    "$2a$10$hashedPassword"
+            );
+
+    verify(jwtService, never())
+            .generateAccessToken(any(User.class));
+}
+
+@Test
+void login_shouldReturnConfiguredTokenExpiration() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.ACTIVE,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(true);
+
+    when(jwtService.generateAccessToken(user))
+            .thenReturn("test-token");
+
+    when(jwtService.getExpirationSeconds())
+            .thenReturn(900L);
+
+    // When
+    LoginResponse response = authService.login(request);
+
+    // Then
+    assertThat(response.tokenType())
+            .isEqualTo("Bearer");
+
+    assertThat(response.expiresIn())
+            .isEqualTo(900);
+
+    assertThat(response.accessToken())
+            .isEqualTo("test-token");
+}
+
+@Test
+void login_shouldGenerateJwtOnlyAfterSuccessfulAuthentication() {
+
+    // Given
+    User user = new User(
+            "ryan@example.com",
+            "$2a$10$hashedPassword",
+            UserStatus.ACTIVE,
+            Instant.now()
+    );
+
+    LoginRequest request = new LoginRequest(
+            "ryan@example.com",
+            "SecurePassword123"
+    );
+
+    when(userRepository.findByEmailIgnoreCase("ryan@example.com"))
+            .thenReturn(Optional.of(user));
+
+    when(passwordEncoder.matches(
+            "SecurePassword123",
+            "$2a$10$hashedPassword"
+    )).thenReturn(true);
+
+    when(jwtService.generateAccessToken(user))
+            .thenReturn("test-token");
+
+    when(jwtService.getExpirationSeconds())
+            .thenReturn(900L);
+
+    // When
+    authService.login(request);
+
+    // Then
+    verify(jwtService).generateAccessToken(user);
+}
+
 }

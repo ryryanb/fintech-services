@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ryanbondoc.fintech.auth.dto.LoginRequest;
+import com.ryanbondoc.fintech.auth.dto.LoginResponse;
 import com.ryanbondoc.fintech.auth.dto.RegisterRequest;
 import com.ryanbondoc.fintech.auth.dto.RegisterResponse;
 import com.ryanbondoc.fintech.auth.service.AuthService;
@@ -32,5 +34,16 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+
+        LoginResponse response =
+                authService.login(request);
+
+        return ResponseEntity.ok(response);
     }
 }
