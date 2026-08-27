@@ -1,6 +1,10 @@
 package com.ryanbondoc.fintech.account.service.impl;
 
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ryanbondoc.fintech.account.dto.CreateFinancialAccountRequest;
 import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
@@ -9,7 +13,6 @@ import com.ryanbondoc.fintech.account.enums.AccountStatus;
 import com.ryanbondoc.fintech.account.repository.FinancialAccountRepository;
 import com.ryanbondoc.fintech.account.service.FinancialAccountService;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -57,4 +60,15 @@ public class FinancialAccountServiceImpl
                 account.getStatus()
         );
     }
+
+    @Override
+@Transactional(readOnly = true)
+public List<FinancialAccountResponse> getAccounts(
+        UUID customerId) {
+
+    return repository.findByCustomerId(customerId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+}
 }

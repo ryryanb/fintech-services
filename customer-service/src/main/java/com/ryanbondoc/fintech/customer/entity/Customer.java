@@ -32,6 +32,9 @@ public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "user_id", nullable = false, unique = true)
+private UUID userId;
     
     @Size(min = 5, max = 20, message = "Customer number must be 5-20 characters")
     @Column(unique = true)

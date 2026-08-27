@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ryanbondoc.fintech.customer.dto.AddressRequest;
 import com.ryanbondoc.fintech.customer.dto.AddressResponse;
+import com.ryanbondoc.fintech.customer.dto.CustomerCreateRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerResponse;
 import com.ryanbondoc.fintech.customer.service.AccountService;
@@ -39,16 +40,30 @@ public class CustomerController {
 
     // POST /customers
     @PostMapping
-    public ResponseEntity<CustomerResponse> createCustomer(@Valid  @RequestBody CustomerRequest customer) {
-        CustomerResponse createdCustomer = customerService.createCustomer(customer);
-        return ResponseEntity.status(201).body(createdCustomer);
-    }
+public ResponseEntity<CustomerResponse> createCustomer(
+        @Valid @RequestBody CustomerCreateRequest customer) {
+
+    CustomerResponse createdCustomer =
+            customerService.createCustomer(customer);
+
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(createdCustomer);
+}
 
     // GET /customers
     @GetMapping
     public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
         return ResponseEntity.ok(customerService.getAllCustomers());
     }
+
+    @GetMapping("/by-user/{userId}")
+public ResponseEntity<CustomerResponse> getCustomerByUserId(
+        @PathVariable UUID userId) {
+
+    return ResponseEntity.ok(
+            customerService.getCustomerByUserId(userId)
+    );
+}
 
     // GET /customers/{id}
     @GetMapping("/{id}")
@@ -99,4 +114,6 @@ public ResponseEntity<AddressResponse> addCustomerAddress(
     return ResponseEntity.status(HttpStatus.CREATED)
             .body(createdAddress);
 }
+
+
 }

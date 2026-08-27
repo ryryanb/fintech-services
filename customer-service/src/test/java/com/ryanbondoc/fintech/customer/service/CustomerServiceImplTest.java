@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ryanbondoc.fintech.core.exception.BusinessException;
 import com.ryanbondoc.fintech.core.exception.CustomerNotFoundException;
+import com.ryanbondoc.fintech.customer.dto.CustomerCreateRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerResponse;
 import com.ryanbondoc.fintech.customer.entity.Customer;
@@ -38,11 +39,19 @@ class CustomerServiceImplTest {
     @InjectMocks
     private CustomerServiceImpl customerService;
 
+    // ============================================================
+    // CREATE CUSTOMER
+    // ============================================================
+
     @Test
     void shouldRegisterCustomer() {
 
         // Given
-        CustomerRequest request = new CustomerRequest(
+        UUID userId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
                 "Ryan",
                 "Bondoc",
                 "ryan@example.com",
@@ -50,9 +59,8 @@ class CustomerServiceImplTest {
                 null
         );
 
-        UUID customerId = UUID.randomUUID();
-
         Customer customer = new Customer();
+        customer.setUserId(userId);
         customer.setFirstName("Ryan");
         customer.setLastName("Bondoc");
         customer.setEmail("ryan@example.com");
@@ -61,6 +69,7 @@ class CustomerServiceImplTest {
 
         Customer savedCustomer = new Customer();
         savedCustomer.setId(customerId);
+        savedCustomer.setUserId(userId);
         savedCustomer.setFirstName("Ryan");
         savedCustomer.setLastName("Bondoc");
         savedCustomer.setEmail("ryan@example.com");
@@ -69,6 +78,7 @@ class CustomerServiceImplTest {
 
         CustomerResponse response = new CustomerResponse(
                 customerId,
+                userId,
                 "Ryan",
                 "Bondoc",
                 "ACTIVE",
@@ -76,8 +86,14 @@ class CustomerServiceImplTest {
                 null
         );
 
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(false);
+
         when(customerMapper.toEntity(request))
                 .thenReturn(customer);
+
+        when(customerRepository.existsByEmail("ryan@example.com"))
+                .thenReturn(false);
 
         when(customerRepository.save(customer))
                 .thenReturn(savedCustomer);
@@ -91,453 +107,675 @@ class CustomerServiceImplTest {
 
         // Then
         assertNotNull(result);
+
         assertEquals(customerId, result.id());
+        assertEquals(userId, result.userId());
         assertEquals("Ryan", result.firstName());
         assertEquals("Bondoc", result.lastName());
         assertEquals("ryan@example.com", result.email());
         assertEquals("ACTIVE", result.status());
         assertEquals(null, result.customerNumber());
 
-        verify(customerMapper).toEntity(request);
-        verify(customerRepository).save(customer);
-        verify(customerMapper).toResponse(savedCustomer);
+        verify(customerRepository)
+                .existsByUserId(userId);
+
+        verify(customerMapper)
+                .toEntity(request);
+
+        verify(customerRepository)
+                .existsByEmail("ryan@example.com");
+
+        verify(customerRepository)
+                .save(customer);
+
+        verify(customerMapper)
+                .toResponse(savedCustomer);
     }
 
-@Test
-void shouldRegisterCustomerWithUniqueCustomerNumber() {
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "ryan@example.com",
-        "ACTIVE",
-        "CUST-10001"
-    );
+    @Test
+    void shouldRegisterCustomerWithUniqueCustomerNumber() {
 
-    Customer customer = new Customer();
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10001");
+        UUID userId = UUID.randomUUID();
 
-    when(customerRepository.existsByCustomerNumber("CUST-10001"))
-        .thenReturn(false);
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                "CUST-10001"
+        );
 
-    when(customerMapper.toEntity(request))
-        .thenReturn(customer);
+        Customer customer = new Customer();
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
 
-    when(customerRepository.save(customer))
-        .thenReturn(customer);
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(false);
 
-    customerService.createCustomer(request);
+        when(customerRepository.existsByEmail("ryan@example.com"))
+                .thenReturn(false);
 
-    verify(customerRepository).existsByCustomerNumber("CUST-10001");
-    verify(customerRepository).save(customer);
-}
+        when(customerRepository.existsByCustomerNumber("CUST-10001"))
+                .thenReturn(false);
 
-  @Test
-void shouldRejectDuplicateCustomerNumber() {
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "ryan@example.com",
-        "ACTIVE",
-        "CUST-10001"
-    );
+        when(customerMapper.toEntity(request))
+                .thenReturn(customer);
 
-    Customer customer = new Customer();
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10001");
+        when(customerRepository.save(customer))
+                .thenReturn(customer);
 
-    when(customerMapper.toEntity(request))
-        .thenReturn(customer);
-
-    // Email is unique, so the service should proceed to the
-    // customer-number uniqueness check.
-    when(customerRepository.existsByEmail("ryan@example.com"))
-        .thenReturn(false);
-
-    // Customer number already exists.
-    when(customerRepository.existsByCustomerNumber("CUST-10001"))
-        .thenReturn(true);
-
-    assertThrows(
-        BusinessException.class,
-        () -> customerService.createCustomer(request)
-    );
-
-    verify(customerRepository)
-        .existsByEmail("ryan@example.com");
-
-    verify(customerRepository)
-        .existsByCustomerNumber("CUST-10001");
-
-    verify(customerRepository, never())
-        .save(any(Customer.class));
-}
-
-@Test
-void shouldRejectDuplicateEmail() {
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "ryan@example.com",
-        "ACTIVE",
-        "CUST-10002"
-    );
-
-    Customer customer = new Customer();
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10002");
-
-    when(customerMapper.toEntity(request))
-        .thenReturn(customer);
-
-    // Email already exists.
-    when(customerRepository.existsByEmail("ryan@example.com"))
-        .thenReturn(true);
-
-    BusinessException exception = assertThrows(
-        BusinessException.class,
-        () -> customerService.createCustomer(request)
-    );
-
-    assertEquals(
-        "Email already exists",
-        exception.getMessage()
-    );
-
-    verify(customerRepository)
-        .existsByEmail("ryan@example.com");
-
-    // Customer number check should not be reached.
-    verify(customerRepository, never())
-        .existsByCustomerNumber("CUST-10002");
-
-    verify(customerRepository, never())
-        .save(any(Customer.class));
-}
-
-@Test
-void shouldRegisterCustomerWithUniqueEmail() {
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "ryan@example.com",
-        "ACTIVE",
-        "CUST-10002"
-    );
-
-    UUID customerId = UUID.randomUUID();
-
-    Customer customer = new Customer();
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10002");
-
-    CustomerResponse response = new CustomerResponse(
-        customerId,
-        "Ryan",
-        "Bondoc",
-        "ACTIVE",
-        "ryan@example.com",
-        "CUST-10002"
-    );
-
-    when(customerMapper.toEntity(request))
-        .thenReturn(customer);
-
-    when(customerRepository.existsByEmail("ryan@example.com"))
-        .thenReturn(false);
-
-    when(customerRepository.existsByCustomerNumber("CUST-10002"))
-        .thenReturn(false);
-
-    when(customerRepository.save(customer))
-        .thenReturn(customer);
-
-    when(customerMapper.toResponse(customer))
-        .thenReturn(response);
-
-    CustomerResponse result =
+        // When
         customerService.createCustomer(request);
 
-    assertNotNull(result);
-    assertEquals(customerId, result.id());
-    assertEquals("Ryan", result.firstName());
-    assertEquals("Bondoc", result.lastName());
-    assertEquals("ryan@example.com", result.email());
-    assertEquals("ACTIVE", result.status());
-    assertEquals("CUST-10002", result.customerNumber());
+        // Then
+        verify(customerRepository)
+                .existsByUserId(userId);
 
-    verify(customerRepository)
-        .existsByEmail("ryan@example.com");
+        verify(customerRepository)
+                .existsByEmail("ryan@example.com");
 
-    verify(customerRepository)
-        .existsByCustomerNumber("CUST-10002");
+        verify(customerRepository)
+                .existsByCustomerNumber("CUST-10001");
 
-    verify(customerRepository)
-        .save(customer);
+        verify(customerRepository)
+                .save(customer);
+    }
 
-    verify(customerMapper)
-        .toResponse(customer);
-}
+    @Test
+    void shouldRejectDuplicateUserId() {
 
-@Test
-void shouldRetrieveCustomer() {
+        // Given
+        UUID userId = UUID.randomUUID();
 
-    // Given
-    UUID customerId = UUID.randomUUID();
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                null
+        );
 
-    Customer customer = new Customer();
-    customer.setId(customerId);
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10001");
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(true);
 
-    CustomerResponse response = new CustomerResponse(
-        customerId,
-        "Ryan",
-        "Bondoc",
-        "ACTIVE",
-        "ryan@example.com",
-        "CUST-10001"
-    );
+        // When / Then
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> customerService.createCustomer(request)
+        );
 
-    when(customerRepository.findById(customerId))
-        .thenReturn(java.util.Optional.of(customer));
+        assertEquals(
+                "Customer already exists for user",
+                exception.getMessage()
+        );
 
-    when(customerMapper.toResponse(customer))
-        .thenReturn(response);
+        verify(customerRepository)
+                .existsByUserId(userId);
 
-    // When
-    CustomerResponse result =
-        customerService.getCustomerById(customerId);
+        verify(customerMapper, never())
+                .toEntity(request);
 
-    // Then
-    assertNotNull(result);
-    assertEquals(customerId, result.id());
-    assertEquals("Ryan", result.firstName());
-    assertEquals("Bondoc", result.lastName());
-    assertEquals("ryan@example.com", result.email());
-    assertEquals("ACTIVE", result.status());
-    assertEquals("CUST-10001", result.customerNumber());
+        verify(customerRepository, never())
+                .save(any(Customer.class));
+    }
 
-    verify(customerRepository)
-        .findById(customerId);
+    @Test
+    void shouldRejectDuplicateCustomerNumber() {
 
-    verify(customerMapper)
-        .toResponse(customer);
-}
+        UUID userId = UUID.randomUUID();
 
-@Test
-void shouldThrowCustomerNotFoundExceptionWhenCustomerDoesNotExist() {
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                "CUST-10001"
+        );
 
-    // Given
-    UUID customerId = UUID.randomUUID();
+        Customer customer = new Customer();
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
 
-    when(customerRepository.findById(customerId))
-        .thenReturn(java.util.Optional.empty());
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(false);
 
-    // When / Then
-    CustomerNotFoundException exception = assertThrows(
-        CustomerNotFoundException.class,
-        () -> customerService.getCustomerById(customerId)
-    );
+        when(customerMapper.toEntity(request))
+                .thenReturn(customer);
 
-    assertEquals(
-    "Customer not found: " + customerId,
-    exception.getMessage()
-);
+        when(customerRepository.existsByEmail("ryan@example.com"))
+                .thenReturn(false);
 
-    verify(customerRepository)
-        .findById(customerId);
+        when(customerRepository.existsByCustomerNumber("CUST-10001"))
+                .thenReturn(true);
 
-    verify(customerMapper, never())
-        .toResponse(any(Customer.class));
-}
+        // When / Then
+        assertThrows(
+                BusinessException.class,
+                () -> customerService.createCustomer(request)
+        );
 
-@Test
-void shouldUpdateCustomer() {
+        verify(customerRepository)
+                .existsByUserId(userId);
 
-    // Given
-    UUID customerId = UUID.randomUUID();
+        verify(customerRepository)
+                .existsByEmail("ryan@example.com");
 
-    CustomerRequest request = new CustomerRequest(
-        "Ryan Updated",
-        "Bondoc Updated",
-        "ryan.updated@example.com",
-        "ACTIVE",
-        "CUST-10001"
-    );
+        verify(customerRepository)
+                .existsByCustomerNumber("CUST-10001");
 
-    Customer customer = new Customer();
-    customer.setId(customerId);
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10001");
+        verify(customerRepository, never())
+                .save(any(Customer.class));
+    }
 
-    CustomerResponse response = new CustomerResponse(
-        customerId,
-        "Ryan Updated",
-        "Bondoc Updated",
-        "ACTIVE",
-        "ryan.updated@example.com",
-        "CUST-10001"
-    );
+    @Test
+    void shouldRejectDuplicateEmail() {
 
-    when(customerRepository.findById(customerId))
-        .thenReturn(Optional.of(customer));
+        UUID userId = UUID.randomUUID();
 
-    when(customerRepository.existsByEmailAndIdNot(
-        "ryan.updated@example.com",
-        customerId))
-        .thenReturn(false);
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                "CUST-10002"
+        );
 
-    when(customerRepository.save(customer))
-        .thenReturn(customer);
+        Customer customer = new Customer();
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10002");
 
-    when(customerMapper.toResponse(customer))
-        .thenReturn(response);
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(false);
 
-    // When
-    CustomerResponse result =
-        customerService.updateCustomer(customerId, request);
+        when(customerMapper.toEntity(request))
+                .thenReturn(customer);
 
-    // Then
-    assertNotNull(result);
-    assertEquals(customerId, result.id());
-    assertEquals("Ryan Updated", result.firstName());
-    assertEquals("Bondoc Updated", result.lastName());
-    assertEquals("ryan.updated@example.com", result.email());
-    assertEquals("ACTIVE", result.status());
-    assertEquals("CUST-10001", result.customerNumber());
+        when(customerRepository.existsByEmail("ryan@example.com"))
+                .thenReturn(true);
 
-    assertEquals("Ryan Updated", customer.getFirstName());
-    assertEquals("Bondoc Updated", customer.getLastName());
-    assertEquals("ryan.updated@example.com", customer.getEmail());
+        // When / Then
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> customerService.createCustomer(request)
+        );
 
-    verify(customerRepository)
-        .findById(customerId);
+        assertEquals(
+                "Email already exists",
+                exception.getMessage()
+        );
 
-    verify(customerRepository)
-        .existsByEmailAndIdNot(
-            "ryan.updated@example.com",
-            customerId);
+        verify(customerRepository)
+                .existsByUserId(userId);
 
-    verify(customerRepository)
-        .save(customer);
+        verify(customerRepository)
+                .existsByEmail("ryan@example.com");
 
-    verify(customerMapper)
-        .toResponse(customer);
-}
+        verify(customerRepository, never())
+                .existsByCustomerNumber("CUST-10002");
 
-@Test
-void shouldThrowCustomerNotFoundExceptionWhenUpdatingNonExistentCustomer() {
+        verify(customerRepository, never())
+                .save(any(Customer.class));
+    }
 
-    // Given
-    UUID customerId = UUID.randomUUID();
+    @Test
+    void shouldRegisterCustomerWithUniqueEmail() {
 
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "ryan@example.com",
-        "ACTIVE",
-        "CUST-10001"
-    );
+        UUID userId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
 
-    when(customerRepository.findById(customerId))
-        .thenReturn(Optional.empty());
+        CustomerCreateRequest request = new CustomerCreateRequest(
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                "CUST-10002"
+        );
 
-    // When / Then
-    CustomerNotFoundException exception = assertThrows(
-        CustomerNotFoundException.class,
-        () -> customerService.updateCustomer(customerId, request)
-    );
+        Customer customer = new Customer();
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10002");
 
-    assertEquals(
-        "Customer not found: " + customerId,
-        exception.getMessage()
-    );
+        CustomerResponse response = new CustomerResponse(
+                customerId,
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ACTIVE",
+                "ryan@example.com",
+                "CUST-10002"
+        );
 
-    verify(customerRepository)
-        .findById(customerId);
+        when(customerRepository.existsByUserId(userId))
+                .thenReturn(false);
 
-    verify(customerRepository, never())
-        .existsByEmailAndIdNot(any(String.class), any(UUID.class));
+        when(customerMapper.toEntity(request))
+                .thenReturn(customer);
 
-    verify(customerRepository, never())
-        .save(any(Customer.class));
+        when(customerRepository.existsByEmail("ryan@example.com"))
+                .thenReturn(false);
 
-    verify(customerMapper, never())
-        .toResponse(any(Customer.class));
-}
+        when(customerRepository.existsByCustomerNumber("CUST-10002"))
+                .thenReturn(false);
 
-@Test
-void shouldRejectUpdateWhenEmailAlreadyExists() {
+        when(customerRepository.save(customer))
+                .thenReturn(customer);
 
-    // Given
-    UUID customerId = UUID.randomUUID();
+        when(customerMapper.toResponse(customer))
+                .thenReturn(response);
 
-    CustomerRequest request = new CustomerRequest(
-        "Ryan",
-        "Bondoc",
-        "existing@example.com",
-        "ACTIVE",
-        "CUST-10001"
-    );
+        // When
+        CustomerResponse result =
+                customerService.createCustomer(request);
 
-    Customer customer = new Customer();
-    customer.setId(customerId);
-    customer.setFirstName("Ryan");
-    customer.setLastName("Bondoc");
-    customer.setEmail("ryan@example.com");
-    customer.setStatus("ACTIVE");
-    customer.setCustomerNumber("CUST-10001");
+        // Then
+        assertNotNull(result);
 
-    when(customerRepository.findById(customerId))
-        .thenReturn(Optional.of(customer));
+        assertEquals(customerId, result.id());
+        assertEquals(userId, result.userId());
+        assertEquals("Ryan", result.firstName());
+        assertEquals("Bondoc", result.lastName());
+        assertEquals("ryan@example.com", result.email());
+        assertEquals("ACTIVE", result.status());
+        assertEquals("CUST-10002", result.customerNumber());
 
-    when(customerRepository.existsByEmailAndIdNot(
-        "existing@example.com",
-        customerId))
-        .thenReturn(true);
+        verify(customerRepository)
+                .existsByUserId(userId);
 
-    // When / Then
-    BusinessException exception = assertThrows(
-        BusinessException.class,
-        () -> customerService.updateCustomer(customerId, request)
-    );
+        verify(customerRepository)
+                .existsByEmail("ryan@example.com");
 
-    assertEquals(
-        "Email already exists",
-        exception.getMessage()
-    );
+        verify(customerRepository)
+                .existsByCustomerNumber("CUST-10002");
 
-    verify(customerRepository)
-        .findById(customerId);
+        verify(customerRepository)
+                .save(customer);
 
-    verify(customerRepository)
-        .existsByEmailAndIdNot(
-            "existing@example.com",
-            customerId);
+        verify(customerMapper)
+                .toResponse(customer);
+    }
 
-    verify(customerRepository, never())
-        .save(any(Customer.class));
+    // ============================================================
+    // GET CUSTOMER BY ID
+    // ============================================================
 
-    verify(customerMapper, never())
-        .toResponse(any(Customer.class));
-}
+    @Test
+    void shouldRetrieveCustomer() {
+
+        // Given
+        UUID customerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
+
+        CustomerResponse response = new CustomerResponse(
+                customerId,
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ACTIVE",
+                "ryan@example.com",
+                "CUST-10001"
+        );
+
+        when(customerRepository.findById(customerId))
+                .thenReturn(Optional.of(customer));
+
+        when(customerMapper.toResponse(customer))
+                .thenReturn(response);
+
+        // When
+        CustomerResponse result =
+                customerService.getCustomerById(customerId);
+
+        // Then
+        assertNotNull(result);
+
+        assertEquals(customerId, result.id());
+        assertEquals(userId, result.userId());
+        assertEquals("Ryan", result.firstName());
+        assertEquals("Bondoc", result.lastName());
+        assertEquals("ryan@example.com", result.email());
+        assertEquals("ACTIVE", result.status());
+        assertEquals("CUST-10001", result.customerNumber());
+
+        verify(customerRepository)
+                .findById(customerId);
+
+        verify(customerMapper)
+                .toResponse(customer);
+    }
+
+    @Test
+    void shouldThrowCustomerNotFoundExceptionWhenCustomerDoesNotExist() {
+
+        // Given
+        UUID customerId = UUID.randomUUID();
+
+        when(customerRepository.findById(customerId))
+                .thenReturn(Optional.empty());
+
+        // When / Then
+        CustomerNotFoundException exception = assertThrows(
+                CustomerNotFoundException.class,
+                () -> customerService.getCustomerById(customerId)
+        );
+
+        assertEquals(
+                "Customer not found: " + customerId,
+                exception.getMessage()
+        );
+
+        verify(customerRepository)
+                .findById(customerId);
+
+        verify(customerMapper, never())
+                .toResponse(any(Customer.class));
+    }
+
+    // ============================================================
+    // GET CUSTOMER BY USER ID
+    // ============================================================
+
+    @Test
+    void shouldRetrieveCustomerByUserId() {
+
+        // Given
+        UUID userId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
+
+        CustomerResponse response = new CustomerResponse(
+                customerId,
+                userId,
+                "Ryan",
+                "Bondoc",
+                "ACTIVE",
+                "ryan@example.com",
+                "CUST-10001"
+        );
+
+        when(customerRepository.findByUserId(userId))
+                .thenReturn(Optional.of(customer));
+
+        when(customerMapper.toResponse(customer))
+                .thenReturn(response);
+
+        // When
+        CustomerResponse result =
+                customerService.getCustomerByUserId(userId);
+
+        // Then
+        assertNotNull(result);
+
+        assertEquals(customerId, result.id());
+        assertEquals(userId, result.userId());
+        assertEquals("Ryan", result.firstName());
+        assertEquals("Bondoc", result.lastName());
+        assertEquals("ryan@example.com", result.email());
+        assertEquals("ACTIVE", result.status());
+        assertEquals("CUST-10001", result.customerNumber());
+
+        verify(customerRepository)
+                .findByUserId(userId);
+
+        verify(customerMapper)
+                .toResponse(customer);
+    }
+
+    @Test
+    void shouldThrowCustomerNotFoundExceptionWhenUserHasNoCustomer() {
+
+        // Given
+        UUID userId = UUID.randomUUID();
+
+        when(customerRepository.findByUserId(userId))
+                .thenReturn(Optional.empty());
+
+        // When / Then
+        CustomerNotFoundException exception = assertThrows(
+                CustomerNotFoundException.class,
+                () -> customerService.getCustomerByUserId(userId)
+        );
+
+        assertEquals(
+                "Customer not found for user: " + userId,
+                exception.getMessage()
+        );
+
+        verify(customerRepository)
+                .findByUserId(userId);
+
+        verify(customerMapper, never())
+                .toResponse(any(Customer.class));
+    }
+
+    // ============================================================
+    // UPDATE CUSTOMER
+    // ============================================================
+
+    @Test
+    void shouldUpdateCustomer() {
+
+        // Given
+        UUID customerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        CustomerRequest request = new CustomerRequest(
+                "Ryan Updated",
+                "Bondoc Updated",
+                "ryan.updated@example.com",
+                "ACTIVE",
+                "CUST-10001"
+        );
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
+
+        CustomerResponse response = new CustomerResponse(
+                customerId,
+                userId,
+                "Ryan Updated",
+                "Bondoc Updated",
+                "ACTIVE",
+                "ryan.updated@example.com",
+                "CUST-10001"
+        );
+
+        when(customerRepository.findById(customerId))
+                .thenReturn(Optional.of(customer));
+
+        when(customerRepository.existsByEmailAndIdNot(
+                "ryan.updated@example.com",
+                customerId))
+                .thenReturn(false);
+
+        when(customerRepository.save(customer))
+                .thenReturn(customer);
+
+        when(customerMapper.toResponse(customer))
+                .thenReturn(response);
+
+        // When
+        CustomerResponse result =
+                customerService.updateCustomer(customerId, request);
+
+        // Then
+        assertNotNull(result);
+
+        assertEquals(customerId, result.id());
+        assertEquals(userId, result.userId());
+        assertEquals("Ryan Updated", result.firstName());
+        assertEquals("Bondoc Updated", result.lastName());
+        assertEquals("ryan.updated@example.com", result.email());
+        assertEquals("ACTIVE", result.status());
+        assertEquals("CUST-10001", result.customerNumber());
+
+        assertEquals("Ryan Updated", customer.getFirstName());
+        assertEquals("Bondoc Updated", customer.getLastName());
+        assertEquals("ryan.updated@example.com", customer.getEmail());
+
+        // userId must remain unchanged during update
+        assertEquals(userId, customer.getUserId());
+
+        verify(customerRepository)
+                .findById(customerId);
+
+        verify(customerRepository)
+                .existsByEmailAndIdNot(
+                        "ryan.updated@example.com",
+                        customerId);
+
+        verify(customerRepository)
+                .save(customer);
+
+        verify(customerMapper)
+                .toResponse(customer);
+    }
+
+    @Test
+    void shouldThrowCustomerNotFoundExceptionWhenUpdatingNonExistentCustomer() {
+
+        // Given
+        UUID customerId = UUID.randomUUID();
+
+        CustomerRequest request = new CustomerRequest(
+                "Ryan",
+                "Bondoc",
+                "ryan@example.com",
+                "ACTIVE",
+                "CUST-10001"
+        );
+
+        when(customerRepository.findById(customerId))
+                .thenReturn(Optional.empty());
+
+        // When / Then
+        CustomerNotFoundException exception = assertThrows(
+                CustomerNotFoundException.class,
+                () -> customerService.updateCustomer(customerId, request)
+        );
+
+        assertEquals(
+                "Customer not found: " + customerId,
+                exception.getMessage()
+        );
+
+        verify(customerRepository)
+                .findById(customerId);
+
+        verify(customerRepository, never())
+                .existsByEmailAndIdNot(
+                        any(String.class),
+                        any(UUID.class)
+                );
+
+        verify(customerRepository, never())
+                .save(any(Customer.class));
+
+        verify(customerMapper, never())
+                .toResponse(any(Customer.class));
+    }
+
+    @Test
+    void shouldRejectUpdateWhenEmailAlreadyExists() {
+
+        // Given
+        UUID customerId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        CustomerRequest request = new CustomerRequest(
+                "Ryan",
+                "Bondoc",
+                "existing@example.com",
+                "ACTIVE",
+                "CUST-10001"
+        );
+
+        Customer customer = new Customer();
+        customer.setId(customerId);
+        customer.setUserId(userId);
+        customer.setFirstName("Ryan");
+        customer.setLastName("Bondoc");
+        customer.setEmail("ryan@example.com");
+        customer.setStatus("ACTIVE");
+        customer.setCustomerNumber("CUST-10001");
+
+        when(customerRepository.findById(customerId))
+                .thenReturn(Optional.of(customer));
+
+        when(customerRepository.existsByEmailAndIdNot(
+                "existing@example.com",
+                customerId))
+                .thenReturn(true);
+
+        // When / Then
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> customerService.updateCustomer(
+                        customerId,
+                        request
+                )
+        );
+
+        assertEquals(
+                "Email already exists",
+                exception.getMessage()
+        );
+
+        verify(customerRepository)
+                .findById(customerId);
+
+        verify(customerRepository)
+                .existsByEmailAndIdNot(
+                        "existing@example.com",
+                        customerId);
+
+        verify(customerRepository, never())
+                .save(any(Customer.class));
+
+        verify(customerMapper, never())
+                .toResponse(any(Customer.class));
+    }
 }

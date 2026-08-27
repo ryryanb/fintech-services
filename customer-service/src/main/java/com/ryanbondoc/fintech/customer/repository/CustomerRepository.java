@@ -12,8 +12,10 @@ import com.ryanbondoc.fintech.customer.enums.CustomerStatus;
 public interface CustomerRepository extends JpaRepository<Customer, UUID> {
     Optional<Customer> findByEmail(String email);
     Optional<Customer> findByCustomerNumber(String customerNumber);
+    Optional<Customer> findByUserId(UUID userId);
     boolean existsByEmail(String email);
     boolean existsByCustomerNumber(String customerNumber);
+    boolean existsByUserId(UUID userId);
     List<Customer> findByStatus(CustomerStatus status);
     boolean existsByEmailAndIdNot(String email, UUID id);
    List<Customer> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(

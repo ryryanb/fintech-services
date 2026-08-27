@@ -10,6 +10,7 @@ import com.ryanbondoc.fintech.core.exception.CustomerNotFoundException;
 import com.ryanbondoc.fintech.core.exception.ResourceNotFoundException;
 import com.ryanbondoc.fintech.customer.dto.AddressRequest;
 import com.ryanbondoc.fintech.customer.dto.AddressResponse;
+import com.ryanbondoc.fintech.customer.dto.CustomerCreateRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerRequest;
 import com.ryanbondoc.fintech.customer.dto.CustomerResponse;
 import com.ryanbondoc.fintech.customer.entity.Address;
@@ -37,23 +38,28 @@ public class CustomerServiceImpl implements CustomerService {
 
  
     @Override
-    public CustomerResponse createCustomer(CustomerRequest customerReq) {
-        
-        Customer customer = customerMapper.toEntity(customerReq);
-        // Rule 1: Duplicate email not allowed
-        if (customerRepository.existsByEmail(customer.getEmail())) {
-            throw new BusinessException("Email already exists");
-        }
+public CustomerResponse createCustomer(CustomerCreateRequest customerReq) {
 
-        // Rule 2: Duplicate customer number not allowed
-        if (customerRepository.existsByCustomerNumber(customer.getCustomerNumber())) {
-            throw new BusinessException("Customer number already exists");
-        }
-
-        Customer createdCustomer = customerRepository.save(customer);
-
-        return customerMapper.toResponse(createdCustomer);
+    if (customerRepository.existsByUserId(customerReq.userId())) {
+        throw new BusinessException("Customer already exists for user");
     }
+
+    Customer customer = customerMapper.toEntity(customerReq);
+
+    if (customerRepository.existsByEmail(customer.getEmail())) {
+        throw new BusinessException("Email already exists");
+    }
+
+    if (customer.getCustomerNumber() != null
+            && customerRepository.existsByCustomerNumber(
+                    customer.getCustomerNumber())) {
+        throw new BusinessException("Customer number already exists");
+    }
+
+    Customer createdCustomer = customerRepository.save(customer);
+
+    return customerMapper.toResponse(createdCustomer);
+}
 
 
 @Override
@@ -175,6 +181,16 @@ public AddressResponse addCustomerAddress(UUID customerId,
     Address savedAddress = addressRepository.save(address);
 
     return addressMapper.toResponse(savedAddress);
+}
+@Override
+public CustomerResponse getCustomerByUserId(UUID userId) {
+
+    Customer customer = customerRepository.findByUserId(userId)
+            .orElseThrow(() ->
+                    new CustomerNotFoundException(
+                            "Customer not found for user: " + userId));
+
+    return customerMapper.toResponse(customer);
 }
 
 }
