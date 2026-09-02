@@ -1,228 +1,275 @@
+# FinTech Services
 
+FinTech Services is a production-oriented financial services platform under active development. The project is being built as a collection of Spring Boot microservices using Java 21, PostgreSQL, Docker, and REST APIs.
 
-# FinTech Core
-
-FinTech Core is an **AI-powered personal finance and payment platform** designed to help individuals manage their financial activity, understand their spending, track financial goals, and make payments.
-
-The project is being developed as a **microservices-based financial platform**, with traditional backend services remaining authoritative for financial data and business rules.
-
-AI capabilities are designed to assist users with financial analysis and interaction without becoming the system of record.
+The project focuses on building a realistic financial-services backend with clear service boundaries, domain ownership, security, persistence, validation, testing, and incremental architectural evolution.
 
 > **Project status:** Active development
 
 ---
 
-## 🎯 Product Vision
+## 🎯 Project Goals
 
-FinTech Core is intended to provide an end-user financial platform where customers can:
+The project is designed to demonstrate practical backend engineering and distributed-system design through a realistic financial-services domain.
 
-- Create and manage their financial profile
-- Connect financial accounts
-- View and analyze transactions
-- Make payments
-- Categorize spending
-- Create financial goals
-- Receive financial alerts
-- Ask questions about their financial activity
-- Use an AI financial assistant to understand their finances
+The primary goals are to demonstrate:
 
-Example interactions with the future AI financial assistant:
+* Java 21 backend development
+* Spring Boot microservices
+* REST API design
+* PostgreSQL persistence
+* Database migrations with Flyway
+* Authentication and authorization
+* Domain-driven service boundaries
+* Input validation and business rules
+* Automated testing
+* Docker-based development
+* Incremental architecture evolution
 
-> "How much did I spend on food this month?"
-
-> "Why did my spending increase this month?"
-
-> "Can I afford to spend ₱5,000 this weekend?"
-
-> "Show me my largest recurring expenses."
-
-The AI layer is designed to **analyze and explain financial information**, while the underlying microservices remain responsible for maintaining financial state and enforcing business rules.
+Future development will extend the platform with transaction processing, payment services, and AI-assisted financial capabilities.
 
 ---
 
-# 🏗 Architecture
+# 🏗 Current Architecture
 
-FinTech Core is organized as a collection of independent services that communicate through APIs.
+The current repository contains three Spring Boot services:
 
 ```text
-                         ┌─────────────────────┐
-                         │      Customer       │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │   Web Application   │
-                         │       (React)       │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │     API Gateway     │
-                         └──────────┬──────────┘
-                                    │
-                 ┌──────────────────┼──────────────────┐
-                 │                  │                  │
-                 ▼                  ▼                  ▼
-        ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-        │ Auth Service   │ │Customer Service│ │Transaction     │
-        │    FastAPI     │ │  Spring Boot   │ │Service         │
-        └────────────────┘ └────────────────┘ │Spring Boot     │
-                                               └───────┬────────┘
-                                                       │
-                                                       ▼
-                                               ┌────────────────┐
-                                               │Payment         │
-                                               │Integrations    │
-                                               │Stripe / PayPal │
-                                               └────────────────┘
+                         FinTech Services
+                                │
+             ┌──────────────────┼──────────────────┐
+             │                  │                  │
+             ▼                  ▼                  ▼
+      Auth Service       Customer Service     Account Service
+      Spring Boot        Spring Boot          Spring Boot
+             │                  │                  │
+             ▼                  ▼                  ▼
+        Auth Data        Customer Data        Account Data
+             │                  │                  │
+             └──────────────────┼──────────────────┘
+                                │
+                           PostgreSQL
+```
 
-                         ┌─────────────────────┐
-                         │     AI Service      │
-                         │                     │
-                         │ Financial Assistant │
-                         │ Spending Analysis   │
-                         │ Anomaly Detection   │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         Financial Data APIs
-````
+Each service owns its own application logic and persistence model.
 
-The architecture will evolve as additional capabilities are implemented.
+The architecture is intentionally being developed incrementally rather than introducing infrastructure before it is required.
 
 ---
 
-# 📦 Services
+# 📦 Implemented Services
 
-The repository contains multiple independently developed applications.
+## Auth Service
 
-| Service                | Technology         | Responsibility                                        |
-| ---------------------- | ------------------ | ----------------------------------------------------- |
-| `fastapi`              | FastAPI / Python   | Authentication and identity                           |
-| `customer-service`     | Java / Spring Boot | Customer information and profile management           |
-| `transaction-service`  | Java / Spring Boot | Financial transactions and payment-related operations |
-| `transaction-frontend` | React              | User-facing web application                           |
+`auth-service`
 
-Additional services, including AI capabilities and an API gateway, are planned as the platform evolves.
+Spring Boot service responsible for authentication and access control.
 
----
-
-# 📚 Service Documentation
-
-Each service maintains its own README containing its implementation-specific documentation.
-
-### Customer Service
-
-The Customer Service manages customer information within FinTech Core.
-
-Documentation:
-
-```text
-customer-service/README.md
-```
-
-The service README contains information such as:
-
-* Service responsibilities
-* Technology stack
-* API endpoints
-* Data model
-* Validation rules
-* User stories
-* Testing
-* Local development
-* Example API requests
-* Known limitations
-
-### Transaction Service
-
-The Transaction Service manages financial transaction-related functionality.
-
-Documentation:
-
-```text
-transaction-service/README.md
-```
-
-### Authentication Service
-
-The authentication service is implemented using FastAPI.
-
-Documentation:
-
-```text
-fastapi/README.md
-```
-
-### Frontend
-
-The frontend provides the user-facing application.
-
-Documentation:
-
-```text
-transaction-frontend/README.md
-```
-
----
-
-# 🌟 Current Capabilities
-
-The platform currently contains the following functionality.
-
-## Authentication
-
-The authentication service provides:
+Current implementation includes:
 
 * User registration
 * User authentication
-* JWT-based authentication
-* Google OAuth integration
-* Role-based access control
-* Multi-tenant support
+* Login
+* JWT-based access tokens
+* RSA-based JWT signing
+* Spring Security integration
+* Authentication-related persistence
+* Request/response DTOs
+* Validation and exception handling
+* Security configuration
+* Service-layer separation
+* Automated tests
 
-## Customer Management
-
-The Customer Service is being developed to manage customer information.
-
-Current functionality includes:
-
-* Customer registration
-* Customer information validation
-* Customer retrieval
-* Customer identification using UUIDs
-* Optional business-provided customer numbers
-
-Customer-specific implementation details are documented in:
-
-```text
-customer-service/README.md
-```
-
-## Transactions and Payments
-
-The Transaction Service currently provides transaction and payment-related functionality, including integrations with external payment providers.
-
-Supported payment providers currently include:
-
-* PayPal
-* Stripe
-
-## Frontend
-
-The React frontend provides the user-facing application for interacting with the platform.
+The service is organized into dedicated packages for controllers, DTOs, entities, repositories, services, security, configuration, and exceptions.
 
 ---
 
-# 🤖 AI Architecture
+## Account Service
 
-AI is a major part of the long-term product direction.
+`account-service`
 
-The AI layer is intended to provide capabilities such as:
+Spring Boot service responsible for financial account management.
+
+Current implementation includes:
+
+* Financial account creation
+* Account persistence
+* System-generated UUID identifiers
+* Account-related DTOs
+* Account domain entities
+* Repository layer
+* Service layer
+* REST controller
+* PostgreSQL persistence
+* Docker-based development
+
+The Account Service establishes the foundation for future financial-account functionality such as balances, account types, and account lifecycle management.
+
+---
+
+## Customer Service
+
+`customer-service`
+
+Spring Boot service responsible for customer information and customer-related business rules.
+
+Current implementation includes:
+
+* Customer registration
+* Customer retrieval
+* Customer information validation
+* UUID-based customer identification
+* Optional business customer numbers
+* Customer status
+* KYC status
+* PostgreSQL persistence
+* Jakarta Bean Validation
+* JPA/Hibernate
+* Unit testing with JUnit and Mockito
+* Docker-based development
+
+The service maintains ownership of customer information and does not own authentication or payment processing.
+
+---
+
+# 🧪 Testing
+
+Testing is implemented at the individual service level.
+
+Current services contain automated tests covering areas such as:
+
+* Service-layer behavior
+* Request validation
+* Business rules
+* Customer registration
+* Error conditions
+
+Tests can be executed using the Maven wrapper within each service:
+
+```bash
+cd customer-service
+./mvnw test
+```
+
+The test strategy will expand as the platform evolves to include broader integration and end-to-end testing.
+
+---
+
+# 🗄 Technology Stack
+
+## Backend
+
+* Java 21
+* Spring Boot
+* Spring Web
+* Spring Data JPA
+* Hibernate
+* Jakarta Bean Validation
+* Spring Security
+* Maven
+
+## Database
+
+* PostgreSQL
+* Flyway
+
+## Testing
+
+* JUnit
+* Mockito
+* Spring testing support
+
+## Infrastructure
+
+* Docker
+* Docker Compose
+
+## API
+
+* REST
+* JSON
+* JWT
+
+---
+
+# 🔐 Security
+
+Security is a core architectural concern of the platform.
+
+Current security work includes:
+
+* JWT-based authentication
+* RSA-based token signing
+* Spring Security
+* Authentication and authorization boundaries
+* Request validation
+* Separation of authentication responsibilities from business services
+
+Security will continue to evolve as additional services are introduced.
+
+Planned security improvements include:
+
+* Service-to-service authorization
+* More granular authorization policies
+* Improved secret management
+* Security-focused integration testing
+* Additional production-hardening measures
+
+---
+
+# 🚧 Planned Services
+
+The following capabilities are **planned and are not currently represented as completed services in the repository**.
+
+## Transaction Service
+
+A dedicated transaction service will own financial transaction processing.
+
+Planned responsibilities include:
+
+* Transaction creation
+* Transaction retrieval
+* Transaction lifecycle management
+* Transaction validation
+* Transaction history
+* Transaction categorization
+* Transaction-related business rules
+
+The transaction domain will remain separate from payment-provider integration.
+
+---
+
+## Payment Service
+
+A dedicated payment service is planned to isolate payment processing from transaction management.
+
+Planned responsibilities include:
+
+* Payment initiation
+* Payment status management
+* Payment-provider integration
+* Payment lifecycle handling
+* Provider-specific adapters
+* Payment failure handling
+* Idempotent payment operations
+
+Potential payment-provider integrations include Stripe and PayPal.
+
+---
+
+# 🤖 Planned AI Capabilities
+
+AI is a long-term extension of the platform rather than a replacement for the deterministic financial services.
+
+The planned AI architecture follows an important principle:
+
+> **AI assists with financial analysis and interaction; authoritative backend services remain the source of truth for financial state.**
+
+Planned capabilities include:
 
 ### Financial Assistant
 
-Allows customers to ask questions about their financial activity using natural language.
+Natural-language interaction with financial information.
 
 Examples:
 
@@ -231,385 +278,211 @@ How much did I spend on food this month?
 
 Why did my spending increase this month?
 
-Can I afford to spend ₱5,000 this weekend?
-
 Show me my largest recurring expenses.
+
+Can I afford to spend ₱5,000 this weekend?
 ```
 
 ### Spending Analysis
 
-The AI layer can analyze financial data provided by authoritative backend services to identify:
+Potential capabilities include:
 
-* Spending patterns
-* Category changes
-* Recurring expenses
-* Significant changes in spending
-* Potential areas for savings
+* Spending-pattern analysis
+* Category analysis
+* Recurring-expense identification
+* Financial summaries
+* Trend analysis
 
 ### Anomaly Detection
 
-AI-assisted analysis can identify potentially unusual financial activity and surface it to the customer.
+AI-assisted analysis may eventually identify potentially unusual financial activity and surface it to users.
+
+### RAG
+
+Retrieval-augmented generation may be introduced where it provides meaningful value, particularly for combining financial data with approved financial knowledge and contextual information.
+
+### Agent Workflows
+
+Agent-based workflows may eventually be introduced for selected financial tasks.
+
+These capabilities remain **planned** and are not currently part of the implemented platform.
 
 ---
 
-## 🔐 AI Does Not Own Financial State
+# 🗺 Development Roadmap
 
-A fundamental architectural principle of FinTech Core is:
+## Phase 1 — Core Services
 
-> **AI assists with financial decisions and understanding; deterministic backend services remain authoritative.**
+**Current**
 
-The AI service should not directly become the source of truth for:
+* [x] Authentication Service
+* [x] Customer Service
+* [x] Account Service
+* [x] PostgreSQL persistence
+* [x] REST APIs
+* [x] JWT authentication
+* [x] Service-level testing
+* [x] Docker-based development
 
-* Account balances
-* Customer records
-* Transactions
-* Payments
-* Payment status
-* Financial rules
+## Phase 2 — Financial Operations
 
-Instead, AI capabilities consume information from authoritative backend services.
+**Planned**
 
-```text
-Customer
-   │
-   ▼
-AI Assistant
-   │
-   ▼
-Financial APIs
-   │
-   ├── Customer Service
-   ├── Transaction Service
-   └── Payment Service
-```
+* [ ] Transaction Service
+* [ ] Transaction lifecycle
+* [ ] Transaction history
+* [ ] Transaction categorization
+* [ ] Payment Service
+* [ ] Payment-provider integration
+* [ ] Payment idempotency
+* [ ] Failure handling
 
-This separation is intended to make AI capabilities easier to evolve without making the underlying financial system dependent on an LLM.
+## Phase 3 — Platform Hardening
 
----
+**Planned**
 
-# 💳 Payment Demonstration
+* [ ] Integration testing
+* [ ] End-to-end testing
+* [ ] Service-to-service authorization
+* [ ] Centralized configuration
+* [ ] Structured logging
+* [ ] Observability
+* [ ] CI/CD
+* [ ] Improved security hardening
+* [ ] Production-oriented deployment
 
-The current deployment includes a working payment integration demonstration.
+## Phase 4 — AI-Assisted Financial Services
 
-### Live Applications
+**Planned**
 
-**Frontend**
+* [ ] AI financial assistant
+* [ ] Financial data analysis
+* [ ] Spending analysis
+* [ ] Financial summaries
+* [ ] Anomaly detection
+* [ ] RAG
+* [ ] Selected agent workflows
 
-[https://fintech-core-frontend.vercel.app](https://fintech-core-frontend.vercel.app)
+## Phase 5 — Distributed Platform Evolution
 
-**Authentication Service**
+**Planned**
 
-[https://fintech-core-auth-service.vercel.app/docs](https://fintech-core-auth-service.vercel.app/docs)
-
-**Transaction Service**
-
-[https://transaction-service-dd9l.onrender.com](https://transaction-service-dd9l.onrender.com)
-
----
-
-## Payment Flow
-
-The current payment demonstration follows this flow:
-
-```text
-Register
-   │
-   ▼
-Sign In
-   │
-   ▼
-Payment Portal
-   │
-   ├── Stripe
-   │
-   └── PayPal
-         │
-         ▼
-      Checkout
-         │
-         ▼
-   Payment Completed
-```
-
-### 1. Register
-
-Users can register through the Authentication Service API documentation.
-
-**Registration Request** <img width="1399" height="670" alt="Register Request" src="https://github.com/user-attachments/assets/9b2e9017-6308-4f91-af5d-24a65bc1832d" /> **Registration Response** <img width="1386" height="480" alt="Registration Response" src="https://github.com/user-attachments/assets/2dde902a-7534-4fdd-b4ca-d79bdebb9436" />
-
-### 2. Sign In
-
-Users sign in through the FinTech Core frontend.
-
-<img width="1227" height="711" alt="Login Screen" src="https://github.com/user-attachments/assets/ff0f53a6-88c7-4376-83d0-b8b80966b3f9" />
-
-### 3. Select Payment Provider
-
-The payment portal allows the user to select a supported payment provider.
-
-<img width="1308" height="737" alt="Payment Portal" src="https://github.com/user-attachments/assets/87783b37-1798-4f35-9686-997495f0d7d0" />
-
-### 4. Complete Checkout
-
-The user completes the payment through the selected provider.
-
-**PayPal Checkout** <img width="1362" height="725" alt="PayPal Checkout" src="https://github.com/user-attachments/assets/97ba4115-489a-43db-bee9-b483e8baa3f2" /> **Payment Details** <img width="1421" height="758" alt="PayPal Payment Details" src="https://github.com/user-attachments/assets/30b844f7-eaed-47cd-9fae-233ada04c591" />
-
-### 5. Payment Confirmation
-
-The application displays the result of the payment operation.
-
-<img width="1053" height="239" alt="Payment Success" src="https://github.com/user-attachments/assets/5bcf5259-e909-4984-8d6d-fde08d56fa28" />
-
----
-
-# 🧪 Testing
-
-Each microservice maintains its own test suite.
-
-For example:
-
-```bash
-cd customer-service
-./mvnw test
-```
-
-Service-specific testing instructions are documented in each service's README.
-
-The project uses automated tests at the service level while additional integration and end-to-end testing will be added as the platform develops.
-
----
-
-# 🚀 Running the Project
-
-## Prerequisites
-
-Depending on which services are being developed, you may need:
-
-* Docker
-* Docker Compose
-* Java 21
-* Maven
-* Python
-* Node.js
-* PostgreSQL
-
-## Clone the Repository
-
-```bash
-git clone https://github.com/ryryanb/fintech_core.git
-cd fintech_core
-```
-
-## Docker
-
-The project uses Docker for containerized development.
-
-```bash
-docker compose up
-```
-
-Individual services can also be developed and tested independently.
-
-Refer to each service's README for service-specific development instructions.
+* [ ] API Gateway
+* [ ] Event-driven communication where justified
+* [ ] Asynchronous processing
+* [ ] Improved resilience
+* [ ] Expanded observability
+* [ ] Production-oriented infrastructure
 
 ---
 
 # 📁 Repository Structure
 
 ```text
-fintech_core/
+fintech-services/
 │
-├── README.md
+├── account-service/
+│   ├── src/
+│   ├── Dockerfile
+│   ├── compose.yaml
+│   └── pom.xml
+│
+├── auth-service/
+│   ├── src/
+│   ├── Dockerfile
+│   ├── compose.yml
+│   └── pom.xml
 │
 ├── customer-service/
+│   ├── src/
 │   ├── README.md
-│   └── ...
+│   ├── Dockerfile
+│   ├── compose.yaml
+│   └── pom.xml
 │
-├── transaction-service/
-│   ├── README.md
-│   └── ...
+├── docs/
+│   └── images/
 │
-├── fastapi/
-│   ├── README.md
-│   └── ...
-│
-├── transaction-frontend/
-│   ├── README.md
-│   └── ...
-│
-└── docker-compose.yml
+├── docker-compose.yml
+├── .gitignore
+└── README.md
 ```
 
-The root README describes the **overall product and architecture**.
-
-Individual service READMEs describe the **implementation of each component**.
+Each service is developed as an independently deployable Spring Boot application with its own source code, configuration, build configuration, and persistence responsibilities.
 
 ---
 
-# 🛠 Technology Stack
+# 🔄 Architecture Evolution
 
-## Backend
+FinTech Services is intentionally being developed through incremental architectural evolution.
 
-* Java 21
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* Python
-* FastAPI
-* REST APIs
+The previous FinTech Core implementation contained legacy services and combined multiple responsibilities, including authentication and transaction/payment functionality.
 
-## Databases
+The current repository represents a cleaner architecture centered on Spring Boot services with explicit domain boundaries.
 
-* PostgreSQL
+The legacy FastAPI authentication service and previous transaction service are no longer part of the current repository structure.
 
-## Frontend
+Their historical implementation remains available in the project's Git history, preserving the evolution of the architecture without making legacy services part of the current system.
 
-* React
-* JavaScript
-
-## Infrastructure
-
-* Docker
-* Docker Compose
-
-## Payments
-
-* PayPal
-* Stripe
-
-## AI
-
-Planned AI capabilities include:
-
-* LLM-powered financial assistance
-* Financial data analysis
-* Spending analysis
-* Anomaly detection
-* Retrieval-augmented generation
-* Agent-based workflows
-
-The AI technology stack will evolve as these capabilities are implemented.
+The next architectural step is to introduce dedicated transaction and payment services rather than recreating the previous combined transaction/payment boundary.
 
 ---
 
-# 🔒 Security
+# 🧭 Engineering Principles
 
-Security is an important architectural consideration for the platform.
+The project follows several architectural principles:
 
-Current and planned security capabilities include:
+### 1. Clear Service Ownership
 
-* JWT-based authentication
-* OAuth integration
-* Role-based access control
-* HTTPS
-* CORS configuration
-* Secure handling of payment credentials
-* Service-level authorization
-* Separation of financial data from AI-generated responses
+Each service should have a well-defined domain responsibility.
 
-Sensitive credentials and environment-specific configuration should not be committed to the repository.
+### 2. Authoritative Financial State
 
----
+Financial state must be maintained by deterministic backend services rather than AI systems.
 
-# 📈 Development Approach
+### 3. Incremental Complexity
 
-FinTech Core is being developed incrementally as a portfolio project.
+Infrastructure and distributed-system patterns should be introduced when they solve a real architectural problem.
 
-Development follows a **user-story-driven approach**, with functionality implemented and tested at the service level before expanding into additional platform capabilities.
+### 4. Testable Business Logic
 
-For example:
+Business rules should be isolated from infrastructure concerns and covered by automated tests.
 
-```text
-Customer Management
-│
-├── CUS-001  Register Customer
-├── CUS-002  Validate Customer Information
-├── CUS-003  Retrieve Customer
-├── CUS-004  Update Customer
-└── ...
-```
+### 5. Secure by Design
 
-Detailed user stories, acceptance criteria, implementation notes, and verification procedures are maintained with the relevant service rather than in this root README.
+Authentication, authorization, secret management, and service boundaries are treated as architectural concerns rather than features added at the end.
+
+### 6. Evolution Over Perfection
+
+The platform is developed incrementally, with architectural decisions evolving as the domain and requirements become clearer.
 
 ---
 
-# 🗺 Roadmap
+# 🎓 Portfolio Purpose
 
-The platform will evolve through several stages.
+FinTech Services is a portfolio project demonstrating practical software-engineering skills in a realistic financial-services domain.
 
-### Phase 1 — Core Platform
-
-* Authentication
-* Customer management
-* Transaction management
-* Payment integration
-* Basic frontend
-
-### Phase 2 — Financial Management
-
-* Financial account management
-* Spending categorization
-* Financial goals
-* Transaction analysis
-* Alerts
-
-### Phase 3 — AI Financial Assistant
-
-* Natural-language financial queries
-* Spending analysis
-* Financial summaries
-* Recurring expense analysis
-
-### Phase 4 — Advanced AI
-
-* Anomaly detection
-* RAG-based financial assistance
-* Agent workflows
-* Personalized financial insights
-
-### Phase 5 — Platform Evolution
-
-* API Gateway
-* Improved service-to-service communication
-* Event-driven architecture
-* Improved observability
-* Expanded security
-* Production-oriented deployment
-
----
-
-# 🎓 Portfolio Goals
-
-FinTech Core is intended to demonstrate practical experience with:
+The project emphasizes:
 
 * Java backend engineering
 * Spring Boot
 * REST API design
 * Microservice architecture
 * PostgreSQL
-* Docker
-* Distributed systems
-* Authentication and authorization
-* Payment integrations
-* AI/LLM integration
-* RAG
-* AI agent workflows
+* Security and authentication
+* Domain modeling
 * Automated testing
-* API design
-* Incremental product development
+* Docker
+* Distributed-system concepts
+* Architecture evolution
+* AI-assisted application design
 
-The project emphasizes **backend architecture and engineering**, while also providing a real end-user product rather than functioning only as a collection of backend demonstrations.
+The goal is not to simulate a complete banking system. The goal is to demonstrate how a backend engineer designs, implements, tests, secures, and evolves a multi-service application around realistic business requirements.
 
 ---
 
-> **Architecture Evolution:** The original FinTech Core implementation contained both transaction management and Stripe/PayPal payment functionality within `transaction-service`. As part of the new architecture, payment processing is being separated into a dedicated `payment-service`, while `transaction-service` will focus exclusively on financial transaction management. This restructuring establishes clearer service boundaries and domain ownership.
-
-# 📄 License
+## 📄 License
 
 This project is licensed under the MIT License.
 
-See the [LICENSE](LICENSE) file for details.
-
-````
-
+See the `LICENSE` file for details.
