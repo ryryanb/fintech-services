@@ -138,12 +138,12 @@ Registers a new customer.
 #### Request
 
 ```json
-{
-  "firstName": "Ryan",
-  "lastName": "Bondoc",
-  "email": "ryan@example.com",
-  "status": "ACTIVE"
-}
+{ "userId": "550e8400-e29b-41d4-a716-446655440000", 
+"firstName": "Ryan", 
+"lastName": "Bondoc", 
+"email": "ryan@example.com", 
+"status": "ACTIVE", 
+"customerNumber": null }
 ```
 
 #### Response
@@ -303,28 +303,13 @@ docker compose up customer-service
 ### Create a Customer
 
 ```bash
-curl -i -X POST http://localhost:8082/customers \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Ryan",
-    "lastName": "Bondoc",
-    "email": "ryan@example.com",
-    "status": "ACTIVE"
-  }'
+curl -X POST http://localhost:8082/customers \ -H "Content-Type: application/json" \ -d '{ "userId": "550e8400-e29b-41d4-a716-446655440000", "firstName": "Ryan", "lastName": "Bondoc", "email": "ryan@example.com", "status": "ACTIVE", "customerNumber": null }'
 ```
 
 ### Create a Customer with a Business Customer Number
 
 ```bash
-curl -i -X POST http://localhost:8082/customers \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Ryan",
-    "lastName": "Bondoc",
-    "email": "ryan@example.com",
-    "status": "ACTIVE",
-    "customerNumber": "CUST-10001"
-  }'
+curl -X POST http://localhost:8082/customers \ -H "Content-Type: application/json" \ -d '{ "userId": "550e8400-e29b-41d4-a716-446655440000", "firstName": "Ryan", "lastName": "Bondoc", "email": "ryan@example.com", "status": "ACTIVE", "customerNumber": "CUST-10001" }'
 ```
 
 ### Retrieve a Customer
@@ -341,6 +326,7 @@ curl -i http://localhost:8082/customers/bee5da62-25aa-4aeb-8678-e922c3549c30
 curl -i -X POST http://localhost:8082/customers \
   -H "Content-Type: application/json" \
   -d '{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
     "firstName": "Ryan",
     "lastName": "Bondoc",
     "email": "not-an-email",
