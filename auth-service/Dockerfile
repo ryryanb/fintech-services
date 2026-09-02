@@ -1,10 +1,13 @@
-# --------- Stage 1: Build the application ----------
+
+# ============================================================
+# Build stage
+# ============================================================
 
 FROM maven:3.9.11-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copy Maven descriptor first
+# Copy Maven descriptor first for dependency layer caching
 COPY pom.xml .
 
 # Download dependencies
@@ -16,7 +19,10 @@ COPY src ./src
 # Build application
 RUN mvn clean package -DskipTests
 
-# --------- Stage 2: Run the application ----------
+
+# ============================================================
+# Runtime stage
+# ============================================================
 
 FROM eclipse-temurin:21-jre-jammy
 
@@ -27,3 +33,4 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8086
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
+

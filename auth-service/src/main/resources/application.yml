@@ -27,3 +27,9 @@ security:
 services:
   customer-service:
     url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

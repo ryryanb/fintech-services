@@ -1,41 +1,181 @@
-version: '3'
-
 services:
-  fastapi-auth:
-    build:
-      context: ./fastapi
-    ports:
-      - "5001:5000"
+
+  # ============================================================
+  # Authentication Database
+  # ============================================================
+
+  auth-db:
+    image: postgres:13
+    container_name: fintech-auth-db
+
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@host.docker.internal:5432/saas_auth_db
-      - PRIVATE_KEY=${PRIVATE_KEY}
-    command: >
-      uvicorn app.main:app --host 0.0.0.0 --port 5000 --reload
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
 
-  transaction-frontend:
-    build:
-      context: ./transaction-frontend
     ports:
-      - "3000:80"
-    depends_on:
-      - fastapi-auth
+      - "5436:5432"
 
-  transaction-service:
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+
+    networks:
+      - fintech-network
+
+
+  # ============================================================
+  # Customer Database
+  # ============================================================
+
+  customer-db:
+    image: postgres:13
+    container_name: fintech-customer-db
+
+    environment:
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - customer-db-data:/var/lib/postgresql/data
+
+    networks:
+      - fintech-network
+
+
+  # ============================================================
+  # Account Database
+  # ============================================================
+
+  account-db:
+    image: postgres:13
+    container_name: fintech-account-db
+
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
+
+    ports:
+      - "5434:5432"
+
+    volumes:
+      - account-db-data:/var/lib/postgresql/data
+
+    networks:
+      - fintech-network
+
+
+  # ============================================================
+  # Auth Service
+  # ============================================================
+
+  auth-service:
+    image: fintech-auth-service:latest
+
     build:
-      context: ./transaction-service
+      context: ./auth-service
+      dockerfile: Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt-private.pem
+
+      CUSTOMER_SERVICE_URL: http://customer-service:8082
+
+    volumes:
+      - ./auth-service/keys/jwt-private.pem:/app/keys/jwt-private.pem:ro
+
     ports:
       - "8086:8086"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/saas_auth_db
-      - SPRING_DATASOURCE_USERNAME=${DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - STRIPE_API_KEY=${STRIPE_API_KEY}
-      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
-      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
-      - PAYPAL_MODE=sandbox
-      - PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
-      - CORS_ALLOWED_DOMAIN=http://localhost:3000
-      - TOKEN_SERVICE_URL=http://spring-boot-app:8080
+
     depends_on:
-      - fastapi-auth
+      - auth-db
+      - customer-service
+
+    networks:
+      - fintech-network
+
+
+  # ============================================================
+  # Customer Service
+  # ============================================================
+
+  customer-service:
+    image: fintech-customer-service:latest
+
+    build:
+      context: ./customer-service
+      dockerfile: Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+
+    ports:
+      - "8082:8082"
+
+    depends_on:
+      - customer-db
+
+    networks:
+      - fintech-network
+
+
+  # ============================================================
+  # Account Service
+  # ============================================================
+
+  account-service:
+    image: fintech-account-service:latest
+
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+
+    ports:
+      - "8083:8083"
+
+    depends_on:
+      - account-db
+
+    networks:
+      - fintech-network
+
+
+# ==============================================================
+# Persistent Database Volumes
+# ==============================================================
+
+volumes:
+  auth-db-data:
+  customer-db-data:
+  account-db-data:
+
+
+# ==============================================================
+# Shared Network
+# ==============================================================
+
+networks:
+  fintech-network:
+    driver: bridge
+
