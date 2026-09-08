@@ -77,8 +77,8 @@ services:
     image: fintech-auth-service:latest
 
     build:
-      context: ./auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: auth-service/Dockerfile
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
@@ -113,8 +113,8 @@ services:
     image: fintech-customer-service:latest
 
     build:
-      context: ./customer-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: customer-service/Dockerfile
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
@@ -141,8 +141,8 @@ services:
     image: fintech-account-service:latest
 
     build:
-      context: ./account-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: account-service/Dockerfile
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db

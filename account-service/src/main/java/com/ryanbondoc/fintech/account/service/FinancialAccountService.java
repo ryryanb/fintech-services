@@ -3,6 +3,7 @@ package com.ryanbondoc.fintech.account.service;
 import java.util.List;
 import java.util.UUID;
 
+import com.ryanbondoc.fintech.account.dto.AccountBalanceResponse;
 import com.ryanbondoc.fintech.account.dto.CreateFinancialAccountRequest;
 import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 
@@ -14,4 +15,8 @@ public interface FinancialAccountService {
 
     List<FinancialAccountResponse> getAccounts(
             UUID customerId);
+
+            AccountBalanceResponse getAccountBalance(
+            UUID accountId
+    );
 }

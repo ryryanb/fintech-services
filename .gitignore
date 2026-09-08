@@ -39,3 +39,8 @@ build/
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Eclipse / Spring Tool Suite
+.project
+.classpath
+.settings/

@@ -1,6 +1,7 @@
 package com.ryanbondoc.fintech.account.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ryanbondoc.fintech.account.dto.AccountBalanceResponse;
 import com.ryanbondoc.fintech.account.dto.CreateFinancialAccountRequest;
 import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 import com.ryanbondoc.fintech.account.entity.FinancialAccount;
@@ -336,5 +339,59 @@ void shouldQueryByCustomerId() {
             .findAll();
 }
 
+@Test
+void shouldReturnAccountBalance() {
+    // Given
+    UUID accountId = UUID.randomUUID();
+
+    FinancialAccount account = FinancialAccount.builder()
+            .id(accountId)
+            .customerId(UUID.randomUUID())
+            .name("BPI Savings")
+            .type(AccountType.BANK_ACCOUNT)
+            .currency("PHP")
+            .balance(new BigDecimal("50000.00"))
+            .institutionName("BPI")
+            .status(AccountStatus.ACTIVE)
+            .build();
+
+    when(financialAccountRepository.findById(accountId))
+            .thenReturn(Optional.of(account));
+
+    // When
+    AccountBalanceResponse response =
+            financialAccountService.getAccountBalance(accountId);
+
+    // Then
+    assertThat(response.accountId())
+            .isEqualTo(accountId);
+
+    assertThat(response.currency())
+            .isEqualTo("PHP");
+
+    assertThat(response.balance())
+            .isEqualByComparingTo("50000.00");
+
+    verify(financialAccountRepository)
+            .findById(accountId);
+}
+
+@Test
+void shouldThrowExceptionWhenAccountDoesNotExist() {
+    // Given
+    UUID accountId = UUID.randomUUID();
+
+    when(financialAccountRepository.findById(accountId))
+            .thenReturn(Optional.empty());
+
+    // When / Then
+    assertThatThrownBy(() ->
+        financialAccountService.getAccountBalance(accountId))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(accountId.toString());
+
+    verify(financialAccountRepository)
+            .findById(accountId);
+}
 
 }

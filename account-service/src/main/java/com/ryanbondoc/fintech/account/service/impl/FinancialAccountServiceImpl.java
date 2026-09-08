@@ -6,10 +6,12 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ryanbondoc.fintech.account.dto.AccountBalanceResponse;
 import com.ryanbondoc.fintech.account.dto.CreateFinancialAccountRequest;
 import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 import com.ryanbondoc.fintech.account.entity.FinancialAccount;
 import com.ryanbondoc.fintech.account.enums.AccountStatus;
+import com.ryanbondoc.fintech.account.exception.FinancialAccountNotFoundException;
 import com.ryanbondoc.fintech.account.repository.FinancialAccountRepository;
 import com.ryanbondoc.fintech.account.service.FinancialAccountService;
 
@@ -70,5 +72,19 @@ public List<FinancialAccountResponse> getAccounts(
             .stream()
             .map(this::toResponse)
             .toList();
+}
+
+@Override
+@Transactional(readOnly = true)
+public AccountBalanceResponse getAccountBalance(UUID accountId) {
+
+    FinancialAccount account = repository.findById(accountId)
+        .orElseThrow(() -> new FinancialAccountNotFoundException(accountId));
+
+    return new AccountBalanceResponse(
+            account.getId(),
+            account.getCurrency(),
+            account.getBalance()
+    );
 }
 }
