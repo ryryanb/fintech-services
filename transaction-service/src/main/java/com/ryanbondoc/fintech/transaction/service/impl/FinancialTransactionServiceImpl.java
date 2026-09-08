@@ -1,27 +1,32 @@
 package com.ryanbondoc.fintech.transaction.service.impl;
 
-import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
-import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
-import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
-import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
+import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
+import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
+import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
+import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
+import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class FinancialTransactionServiceImpl
         implements FinancialTransactionService {
 
     private final FinancialTransactionRepository transactionRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<TransactionResponse> getTransactions(UUID accountId) {
-
         return transactionRepository
                 .findByAccountIdOrderByTransactionDateDesc(accountId)
                 .stream()
@@ -29,7 +34,32 @@ public class FinancialTransactionServiceImpl
                 .toList();
     }
 
-    private TransactionResponse toResponse(FinancialTransaction transaction) {
+    @Override
+    public TransactionResponse createTransaction(TransactionRequest request) {
+
+        FinancialTransaction transaction = FinancialTransaction.builder()
+                .accountId(request.accountId())
+                .type(request.type())
+                .direction(request.direction())
+                .amount(request.amount())
+                .currency(request.currency())
+                .description(request.description())
+                .status(TransactionStatus.COMPLETED)
+                .transactionDate(
+                        request.transactionDate() != null
+                                ? request.transactionDate()
+                                : OffsetDateTime.now()
+                )
+                .build();
+
+        FinancialTransaction saved =
+                transactionRepository.save(transaction);
+
+        return toResponse(saved);
+    }
+
+    private TransactionResponse toResponse(
+            FinancialTransaction transaction) {
 
         return new TransactionResponse(
                 transaction.getId(),
