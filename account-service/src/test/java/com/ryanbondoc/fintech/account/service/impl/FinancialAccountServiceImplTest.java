@@ -26,6 +26,7 @@ import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 import com.ryanbondoc.fintech.account.entity.FinancialAccount;
 import com.ryanbondoc.fintech.account.enums.AccountStatus;
 import com.ryanbondoc.fintech.account.enums.AccountType;
+import com.ryanbondoc.fintech.account.exception.FinancialAccountNotFoundException;
 import com.ryanbondoc.fintech.account.repository.FinancialAccountRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -387,7 +388,7 @@ void shouldThrowExceptionWhenAccountDoesNotExist() {
     // When / Then
     assertThatThrownBy(() ->
         financialAccountService.getAccountBalance(accountId))
-        .isInstanceOf(IllegalArgumentException.class)
+        .isInstanceOf(FinancialAccountNotFoundException.class)
         .hasMessageContaining(accountId.toString());
 
     verify(financialAccountRepository)
