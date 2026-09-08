@@ -69,6 +69,28 @@ services:
       - fintech-network
 
 
+    # ============================================================
+  # Transaction Database
+  # ============================================================
+
+  transaction-db:
+    image: postgres:13
+    container_name: fintech-transaction-db
+
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: saas_user
+      POSTGRES_PASSWORD: saas_password
+
+    ports:
+      - "5437:5432"
+
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
+
+    networks:
+      - fintech-network
+
   # ============================================================
   # Auth Service
   # ============================================================
@@ -159,7 +181,33 @@ services:
 
     networks:
       - fintech-network
+  
+    # ============================================================
+  # Transaction Service
+  # ============================================================
 
+  transaction-service:
+    image: fintech-transaction-service:latest
+
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5437/transaction_db
+      SPRING_DATASOURCE_USERNAME: saas_user
+      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+
+    ports:
+      - "8087:8087"
+
+    depends_on:
+      - transaction-db
+
+    networks:
+      - fintech-network
 
 # ==============================================================
 # Persistent Database Volumes
@@ -169,6 +217,7 @@ volumes:
   auth-db-data:
   customer-db-data:
   account-db-data:
+  transaction-db-data:
 
 
 # ==============================================================
