@@ -194,7 +194,7 @@ services:
       dockerfile: transaction-service/Dockerfile
 
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5437/transaction_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5432/transaction_db
       SPRING_DATASOURCE_USERNAME: saas_user
       SPRING_DATASOURCE_PASSWORD: saas_password
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
