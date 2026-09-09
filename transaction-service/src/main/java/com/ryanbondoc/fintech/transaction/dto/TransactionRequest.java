@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
 
@@ -43,6 +44,13 @@ public record TransactionRequest(
         )
         String description,
 
+        @Size(max = 150)
+String merchant,
+
+TransactionCategory category,
+
         OffsetDateTime transactionDate
+        
+        
 ) {
 }

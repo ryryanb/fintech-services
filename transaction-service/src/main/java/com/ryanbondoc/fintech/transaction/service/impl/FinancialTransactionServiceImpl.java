@@ -11,8 +11,10 @@ import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
+import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
+import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
 import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
 
@@ -51,20 +53,26 @@ public TransactionResponse createTransaction(
     }
 
     FinancialTransaction transaction =
-            FinancialTransaction.builder()
-                    .accountId(accountId)
-                    .type(request.type())
-                    .direction(request.direction())
-                    .amount(request.amount())
-                    .currency(request.currency())
-                    .description(request.description())
-                    .status(TransactionStatus.COMPLETED)
-                    .transactionDate(
-                            request.transactionDate() != null
-                                    ? request.transactionDate()
-                                    : OffsetDateTime.now()
-                    )
-                    .build();
+        FinancialTransaction.builder()
+                .accountId(accountId)
+                .type(request.type())
+                .direction(request.direction())
+                .amount(request.amount())
+                .currency(request.currency())
+                .merchant(request.merchant())
+                .category(
+                        request.category() != null
+                                ? request.category()
+                                : TransactionCategory.OTHER
+                )
+                .description(request.description())
+                .status(TransactionStatus.COMPLETED)
+                .transactionDate(
+                        request.transactionDate() != null
+                                ? request.transactionDate()
+                                : OffsetDateTime.now()
+                )
+                .build();
 
     FinancialTransaction saved =
             transactionRepository.save(transaction);
@@ -82,12 +90,27 @@ private TransactionResponse toResponse(
             transaction.getDirection(),
             transaction.getAmount(),
             transaction.getCurrency(),
+            transaction.getMerchant(),
+            transaction.getCategory(),
             transaction.getDescription(),
             transaction.getStatus(),
+            
             transaction.getTransactionDate()
     );
 }
 
+@Override
+@Transactional(readOnly = true)
+public TransactionResponse getTransaction(UUID transactionId) {
+
+    FinancialTransaction transaction =
+            transactionRepository.findById(transactionId)
+                    .orElseThrow(() ->
+                            new TransactionNotFoundException(transactionId)
+                    );
+
+    return toResponse(transaction);
+}
     
   
 

@@ -10,4 +10,5 @@ public interface FinancialTransactionService {
 
     List<TransactionResponse> getTransactions(UUID accountId);
     TransactionResponse createTransaction(TransactionRequest request);
+    TransactionResponse getTransaction(UUID transactionId);
 }

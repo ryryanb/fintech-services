@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
+import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
@@ -106,6 +108,8 @@ void shouldCreateTransaction() {
             new BigDecimal("1250.00"),
             "PHP",
             "Utility payment",
+            "merchant",
+                TransactionCategory.FEES,
             transactionDate
     );
 
@@ -157,6 +161,8 @@ void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
             new BigDecimal("5000.00"),
             "PHP",
             "Cash deposit",
+            "merchant",
+                TransactionCategory.FEES,
             null
     );
 
@@ -192,6 +198,8 @@ void shouldPersistTransactionWithCompletedStatus() {
             new BigDecimal("1500.00"),
             "PHP",
             "Transfer to savings",
+            "merchant",
+                TransactionCategory.FEES,
             null
     );
 
@@ -241,6 +249,8 @@ TransactionRequest request = new TransactionRequest(
         new BigDecimal("1250.00"),
         "PHP",
         "Utility payment",
+        "merchant",
+                TransactionCategory.FEES,
         transactionDate
 );
 
@@ -292,6 +302,8 @@ TransactionRequest request = new TransactionRequest(
         new BigDecimal("1250.00"),
         "PHP",
         "Utility payment",
+        "merchant",
+                TransactionCategory.FEES,
         null
 );
 
@@ -312,6 +324,49 @@ verify(transactionRepository, never())
     
   
 
+}
+
+@Test
+void shouldGetTransactionById() {
+
+    UUID transactionId = UUID.randomUUID();
+    UUID accountId = UUID.randomUUID();
+
+    OffsetDateTime transactionDate =
+            OffsetDateTime.parse("2026-09-09T14:30:00Z");
+
+    FinancialTransaction transaction =
+            FinancialTransaction.builder()
+                    .id(transactionId)
+                    .accountId(accountId)
+                    .type(TransactionType.PAYMENT)
+                    .direction(TransactionDirection.DEBIT)
+                    .amount(new BigDecimal("1250.00"))
+                    .currency("PHP")
+                    .merchant("SM Supermarket")
+                    .category(TransactionCategory.GROCERIES)
+                    .description("Weekly groceries")
+                    .status(TransactionStatus.COMPLETED)
+                    .transactionDate(transactionDate)
+                    .build();
+
+    when(transactionRepository.findById(transactionId))
+            .thenReturn(Optional.of(transaction));
+
+    TransactionResponse result =
+            transactionService.getTransaction(transactionId);
+
+    assertThat(result.id()).isEqualTo(transactionId);
+    assertThat(result.accountId()).isEqualTo(accountId);
+    assertThat(result.merchant()).isEqualTo("SM Supermarket");
+    assertThat(result.amount())
+            .isEqualByComparingTo("1250.00");
+    assertThat(result.transactionDate())
+            .isEqualTo(transactionDate);
+    assertThat(result.category())
+            .isEqualTo(TransactionCategory.GROCERIES);
+
+    verify(transactionRepository).findById(transactionId);
 }
 
 }

@@ -23,6 +23,17 @@ public Map<String, String> handleAccountNotFound(
     );
 }
 
+@ExceptionHandler(TransactionNotFoundException.class)
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public Map<String, String> handleTransactionNotFound(
+        TransactionNotFoundException exception) {
+
+    return Map.of(
+            "error", "TRANSACTION_NOT_FOUND",
+            "message", exception.getMessage()
+    );
+}
+
     
   
 
