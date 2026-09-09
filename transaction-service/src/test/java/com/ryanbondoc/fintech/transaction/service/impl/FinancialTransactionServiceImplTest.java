@@ -1,7 +1,9 @@
 package com.ryanbondoc.fintech.transaction.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,12 +19,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
+import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
 
 
@@ -32,6 +36,9 @@ class FinancialTransactionServiceImplTest {
 
     @Mock
     private FinancialTransactionRepository transactionRepository;
+
+    @Mock
+private AccountServiceClient accountServiceClient;
 
     @InjectMocks
     private FinancialTransactionServiceImpl transactionService;
@@ -86,6 +93,9 @@ void shouldCreateTransaction() {
     UUID accountId = UUID.randomUUID();
     UUID transactionId = UUID.randomUUID();
 
+    when(accountServiceClient.accountExists(accountId))
+        .thenReturn(true);
+
     OffsetDateTime transactionDate =
             OffsetDateTime.parse("2026-09-08T14:30:00Z");
 
@@ -137,6 +147,9 @@ void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
 
     UUID accountId = UUID.randomUUID();
 
+    when(accountServiceClient.accountExists(accountId))
+        .thenReturn(true);
+
     TransactionRequest request = new TransactionRequest(
             accountId,
             TransactionType.DEPOSIT,
@@ -168,6 +181,9 @@ void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
 void shouldPersistTransactionWithCompletedStatus() {
 
     UUID accountId = UUID.randomUUID();
+
+    when(accountServiceClient.accountExists(accountId))
+        .thenReturn(true);
 
     TransactionRequest request = new TransactionRequest(
             accountId,
@@ -207,6 +223,95 @@ void shouldPersistTransactionWithCompletedStatus() {
     assertThat(persisted.getCurrency()).isEqualTo("PHP");
     assertThat(persisted.getStatus())
             .isEqualTo(TransactionStatus.COMPLETED);
+}
+
+@Test
+void shouldAssociateTransactionWithExistingAccount() {
+
+UUID accountId = UUID.randomUUID();
+UUID transactionId = UUID.randomUUID();
+
+OffsetDateTime transactionDate =
+        OffsetDateTime.parse("2026-09-08T14:30:00Z");
+
+TransactionRequest request = new TransactionRequest(
+        accountId,
+        TransactionType.PAYMENT,
+        TransactionDirection.DEBIT,
+        new BigDecimal("1250.00"),
+        "PHP",
+        "Utility payment",
+        transactionDate
+);
+
+FinancialTransaction savedTransaction =
+        FinancialTransaction.builder()
+                .id(transactionId)
+                .accountId(accountId)
+                .type(TransactionType.PAYMENT)
+                .direction(TransactionDirection.DEBIT)
+                .amount(new BigDecimal("1250.00"))
+                .currency("PHP")
+                .description("Utility payment")
+                .status(TransactionStatus.COMPLETED)
+                .transactionDate(transactionDate)
+                .build();
+
+when(accountServiceClient.accountExists(accountId))
+        .thenReturn(true);
+
+when(transactionRepository.save(any(FinancialTransaction.class)))
+        .thenReturn(savedTransaction);
+
+TransactionResponse result =
+        transactionService.createTransaction(request);
+
+assertThat(result.accountId())
+        .isEqualTo(accountId);
+
+verify(accountServiceClient)
+        .accountExists(accountId);
+
+verify(transactionRepository)
+        .save(any(FinancialTransaction.class));
+
+    
+  
+
+}
+
+@Test
+void shouldRejectTransactionWhenAccountDoesNotExist() {
+
+UUID accountId = UUID.randomUUID();
+
+TransactionRequest request = new TransactionRequest(
+        accountId,
+        TransactionType.PAYMENT,
+        TransactionDirection.DEBIT,
+        new BigDecimal("1250.00"),
+        "PHP",
+        "Utility payment",
+        null
+);
+
+when(accountServiceClient.accountExists(accountId))
+        .thenReturn(false);
+
+assertThatThrownBy(() ->
+        transactionService.createTransaction(request)
+)
+        .isInstanceOf(AccountNotFoundException.class);
+
+verify(accountServiceClient)
+        .accountExists(accountId);
+
+verify(transactionRepository, never())
+        .save(any(FinancialTransaction.class));
+
+    
+  
+
 }
 
 }

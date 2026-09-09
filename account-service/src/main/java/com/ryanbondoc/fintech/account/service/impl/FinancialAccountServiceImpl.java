@@ -15,6 +15,7 @@ import com.ryanbondoc.fintech.account.exception.FinancialAccountNotFoundExceptio
 import com.ryanbondoc.fintech.account.repository.FinancialAccountRepository;
 import com.ryanbondoc.fintech.account.service.FinancialAccountService;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -86,5 +87,24 @@ public AccountBalanceResponse getAccountBalance(UUID accountId) {
             account.getCurrency(),
             account.getBalance()
     );
+}
+
+@Override
+@Transactional(readOnly = true)
+public FinancialAccountResponse getAccount(UUID accountId) {
+
+FinancialAccount account =
+        repository.findById(accountId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Financial account not found: " + accountId
+                        )
+                );
+
+return toResponse(account);
+
+    
+  
+
 }
 }

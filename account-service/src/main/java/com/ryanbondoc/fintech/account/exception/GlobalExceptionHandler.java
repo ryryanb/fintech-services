@@ -5,7 +5,10 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,5 +23,16 @@ public class GlobalExceptionHandler {
                         "error", "ACCOUNT_NOT_FOUND",
                         "message", ex.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleEntityNotFound(
+            EntityNotFoundException exception) {
+
+        return Map.of(
+                "error", "ACCOUNT_NOT_FOUND",
+                "message", exception.getMessage()
+        );
     }
 }

@@ -199,6 +199,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: saas_password
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SERVICES_ACCOUNT_BASE_URL: http://account-service:8083
 
     ports:
       - "8087:8087"
@@ -208,6 +209,7 @@ services:
 
     networks:
       - fintech-network
+
 
 # ==============================================================
 # Persistent Database Volumes

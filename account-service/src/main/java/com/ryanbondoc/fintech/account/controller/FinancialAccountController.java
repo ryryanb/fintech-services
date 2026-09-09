@@ -60,4 +60,16 @@ public ResponseEntity<AccountBalanceResponse> getAccountBalance(
     return ResponseEntity.ok(response);
 }
 
+@GetMapping("/{accountId}")
+public ResponseEntity<FinancialAccountResponse> getAccount(
+        @PathVariable UUID accountId) {
+return ResponseEntity.ok(
+        financialAccountService.getAccount(accountId)
+);
+
+    
+  
+
+}
+
 }

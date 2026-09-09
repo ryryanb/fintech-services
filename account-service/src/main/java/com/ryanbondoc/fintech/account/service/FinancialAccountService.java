@@ -19,4 +19,6 @@ public interface FinancialAccountService {
             AccountBalanceResponse getAccountBalance(
             UUID accountId
     );
+
+    FinancialAccountResponse getAccount(UUID accountId);
 }
