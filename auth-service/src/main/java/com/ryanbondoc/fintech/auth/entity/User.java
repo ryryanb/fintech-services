@@ -5,15 +5,22 @@ import java.util.UUID;
 
 import com.ryanbondoc.fintech.auth.enums.UserStatus;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.Data;
 
 @Entity
-@Table(
-    name = "users",
-    uniqueConstraints = {
+@Data
+@Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_email", columnNames = "email")
-    }
-)
+})
 public class User {
 
     @Id
@@ -33,6 +40,9 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "customer_id")
+    private UUID customerId;
+
     protected User() {
     }
 
@@ -40,31 +50,11 @@ public class User {
             String email,
             String passwordHash,
             UserStatus status,
-            Instant createdAt
-    ) {
+            Instant createdAt) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.status = status;
         this.createdAt = createdAt;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public UserStatus getStatus() {
-        return status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
 }

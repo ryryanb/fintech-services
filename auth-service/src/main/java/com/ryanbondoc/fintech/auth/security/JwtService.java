@@ -20,64 +20,62 @@ import io.jsonwebtoken.Jwts;
 @Service
 public class JwtService {
 
-    private final PrivateKey privateKey;
-    private final long expirationSeconds;
+        private final PrivateKey privateKey;
+        private final long expirationSeconds;
 
-    public JwtService(
-            @Value("${security.jwt.private-key-path}") String privateKeyPath,
-            @Value("${security.jwt.expiration-seconds:900}") long expirationSeconds
-    ) {
-        this.privateKey = loadPrivateKey(privateKeyPath);
-        this.expirationSeconds = expirationSeconds;
-    }
-
-    public String generateAccessToken(User user) {
-
-        Instant now = Instant.now();
-
-        return Jwts.builder()
-                .subject(user.getId().toString())
-                .claim("roles", List.of("USER"))
-                .issuedAt(Date.from(now))
-                .expiration(
-                        Date.from(
-                                now.plusSeconds(expirationSeconds)
-                        )
-                )
-                .signWith(privateKey)
-                .compact();
-    }
-
-    public long getExpirationSeconds() {
-        return expirationSeconds;
-    }
-
-    private PrivateKey loadPrivateKey(String path) {
-
-        try {
-            String pem = Files.readString(Path.of(path));
-
-            String privateKeyContent = pem
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replaceAll("\\s", "");
-
-            byte[] keyBytes =
-                    Base64.getDecoder().decode(privateKeyContent);
-
-            PKCS8EncodedKeySpec keySpec =
-                    new PKCS8EncodedKeySpec(keyBytes);
-
-            KeyFactory keyFactory =
-                    KeyFactory.getInstance("RSA");
-
-            return keyFactory.generatePrivate(keySpec);
-
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Unable to load JWT private key",
-                    e
-            );
+        public JwtService(
+                        @Value("${security.jwt.private-key-path}") String privateKeyPath,
+                        @Value("${security.jwt.expiration-seconds:900}") long expirationSeconds) {
+                this.privateKey = loadPrivateKey(privateKeyPath);
+                this.expirationSeconds = expirationSeconds;
         }
-    }
+
+        public String generateAccessToken(User user) {
+                if (user.getCustomerId() == null) {
+                        throw new IllegalStateException(
+                                        "User is not associated with a customer profile.");
+                }
+
+                Instant now = Instant.now();
+
+                return Jwts.builder()
+                                .subject(user.getId().toString())
+                                .claim("roles", List.of("USER"))
+                                .claim("customerId", user.getCustomerId().toString())
+                                .issuedAt(Date.from(now))
+                                .expiration(
+                                                Date.from(
+                                                                now.plusSeconds(expirationSeconds)))
+                                .signWith(privateKey)
+                                .compact();
+        }
+
+        public long getExpirationSeconds() {
+                return expirationSeconds;
+        }
+
+        private PrivateKey loadPrivateKey(String path) {
+
+                try {
+                        String pem = Files.readString(Path.of(path));
+
+                        String privateKeyContent = pem
+                                        .replace("-----BEGIN PRIVATE KEY-----", "")
+                                        .replace("-----END PRIVATE KEY-----", "")
+                                        .replaceAll("\\s", "");
+
+                        byte[] keyBytes = Base64.getDecoder().decode(privateKeyContent);
+
+                        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+
+                        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+                        return keyFactory.generatePrivate(keySpec);
+
+                } catch (Exception e) {
+                        throw new IllegalStateException(
+                                        "Unable to load JWT private key",
+                                        e);
+                }
+        }
 }

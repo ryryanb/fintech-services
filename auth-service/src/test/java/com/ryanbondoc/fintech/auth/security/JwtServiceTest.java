@@ -26,181 +26,190 @@ import io.jsonwebtoken.Jwts;
 
 class JwtServiceTest {
 
-    private static final long EXPIRATION_SECONDS = 900;
+        private static final long EXPIRATION_SECONDS = 900;
 
-    @TempDir
-    Path tempDir;
+        @TempDir
+        Path tempDir;
 
-    private JwtService jwtService;
-    private KeyPair keyPair;
-    private User user;
-    private UUID userId;
+        private JwtService jwtService;
+        private KeyPair keyPair;
+        private User user;
+        private UUID userId;
+        private UUID customerId;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        keyPair = generateRsaKeyPair();
+        @BeforeEach
+        void setUp() throws Exception {
+                keyPair = generateRsaKeyPair();
 
-        Path privateKeyPath = tempDir.resolve("jwt-private.pem");
-        Files.writeString(
-                privateKeyPath,
-                toPem(keyPair.getPrivate())
-        );
+                Path privateKeyPath = tempDir.resolve("jwt-private.pem");
+                Files.writeString(
+                                privateKeyPath,
+                                toPem(keyPair.getPrivate()));
 
-        jwtService = new JwtService(
-                privateKeyPath.toString(),
-                EXPIRATION_SECONDS
-        );
+                jwtService = new JwtService(
+                                privateKeyPath.toString(),
+                                EXPIRATION_SECONDS);
 
-        userId = UUID.randomUUID();
+                userId = UUID.randomUUID();
+                customerId = UUID.randomUUID();
 
-        user = mock(User.class);
-        when(user.getId()).thenReturn(userId);
-    }
+                user = mock(User.class);
 
-    @Test
-    void shouldContainUserIdAsSubject() {
-        // Given
-        String expectedUserId = userId.toString();
+                when(user.getId()).thenReturn(userId);
+                when(user.getCustomerId()).thenReturn(customerId);
+        }
 
-        // When
-        String token = jwtService.generateAccessToken(user);
+        @Test
+        void shouldContainUserIdAsSubject() {
+                // Given
+                String expectedUserId = userId.toString();
 
-        // Then
-        Claims claims = parseToken(token);
+                // When
+                String token = jwtService.generateAccessToken(user);
 
-        assertThat(claims.getSubject())
-                .isEqualTo(expectedUserId);
-    }
+                // Then
+                Claims claims = parseToken(token);
 
-    @Test
-    void shouldContainUserRole() {
-        // Given
-        String token = jwtService.generateAccessToken(user);
+                assertThat(claims.getSubject())
+                                .isEqualTo(expectedUserId);
+        }
 
-        // When
-        Claims claims = parseToken(token);
+        @Test
+        void shouldContainUserRole() {
+                // Given
+                String token = jwtService.generateAccessToken(user);
 
-        // Then
-        assertThat(claims.get("roles"))
-                .isNotNull();
+                // When
+                Claims claims = parseToken(token);
 
-        assertThat(claims.get("roles").toString())
-                .contains("USER");
-    }
+                // Then
+                assertThat(claims.get("roles"))
+                                .isNotNull();
 
-    @Test
-    void shouldContainIssuedAtTimestamp() {
-        // Given
-        String token = jwtService.generateAccessToken(user);
+                assertThat(claims.get("roles").toString())
+                                .contains("USER");
+        }
 
-        // When
-        Claims claims = parseToken(token);
+        @Test
+        void shouldContainIssuedAtTimestamp() {
+                // Given
+                String token = jwtService.generateAccessToken(user);
 
-        // Then
-        assertThat(claims.getIssuedAt())
-                .isNotNull();
-    }
+                // When
+                Claims claims = parseToken(token);
 
-    @Test
-    void shouldExpireAfter900Seconds() {
-        // Given
-        String token = jwtService.generateAccessToken(user);
+                // Then
+                assertThat(claims.getIssuedAt())
+                                .isNotNull();
+        }
 
-        // When
-        Claims claims = parseToken(token);
+        @Test
+        void shouldExpireAfter900Seconds() {
+                // Given
+                String token = jwtService.generateAccessToken(user);
 
-        Date issuedAt = claims.getIssuedAt();
-        Date expiration = claims.getExpiration();
+                // When
+                Claims claims = parseToken(token);
 
-        // Then
-        assertThat(expiration.getTime() - issuedAt.getTime())
-                .isEqualTo(EXPIRATION_SECONDS * 1000);
-    }
+                Date issuedAt = claims.getIssuedAt();
+                Date expiration = claims.getExpiration();
 
-    @Test
-    void shouldProduceValidSignedJwt() {
-        // Given
-        String token = jwtService.generateAccessToken(user);
+                // Then
+                assertThat(expiration.getTime() - issuedAt.getTime())
+                                .isEqualTo(EXPIRATION_SECONDS * 1000);
+        }
 
-        // When
-        Claims claims = Jwts.parser()
-                .verifyWith(keyPair.getPublic())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        @Test
+        void shouldProduceValidSignedJwt() {
+                // Given
+                String token = jwtService.generateAccessToken(user);
 
-        // Then
-        assertThat(claims)
-                .isNotNull();
+                // When
+                Claims claims = Jwts.parser()
+                                .verifyWith(keyPair.getPublic())
+                                .build()
+                                .parseSignedClaims(token)
+                                .getPayload();
 
-        assertThat(claims.getSubject())
-                .isEqualTo(userId.toString());
-    }
+                // Then
+                assertThat(claims)
+                                .isNotNull();
 
-    @Test
-    void shouldRejectTamperedJwt() {
-        // Given
-        String originalToken = jwtService.generateAccessToken(user);
+                assertThat(claims.getSubject())
+                                .isEqualTo(userId.toString());
+        }
 
-        String tamperedToken = tamperWithPayload(originalToken);
+        @Test
+        void shouldRejectTamperedJwt() {
+                // Given
+                String originalToken = jwtService.generateAccessToken(user);
 
-        // When / Then
-        assertThatThrownBy(() ->
-                Jwts.parser()
-                        .verifyWith(keyPair.getPublic())
-                        .build()
-                        .parseSignedClaims(tamperedToken)
-        )
-                .isInstanceOf(Exception.class);
-    }
+                String tamperedToken = tamperWithPayload(originalToken);
 
-    private Claims parseToken(String token) {
-        return Jwts.parser()
-                .verifyWith(keyPair.getPublic())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
+                // When / Then
+                assertThatThrownBy(() -> Jwts.parser()
+                                .verifyWith(keyPair.getPublic())
+                                .build()
+                                .parseSignedClaims(tamperedToken))
+                                .isInstanceOf(Exception.class);
+        }
 
-    private static KeyPair generateRsaKeyPair() throws Exception {
-        KeyPairGenerator keyPairGenerator =
-                KeyPairGenerator.getInstance("RSA");
+        private Claims parseToken(String token) {
+                return Jwts.parser()
+                                .verifyWith(keyPair.getPublic())
+                                .build()
+                                .parseSignedClaims(token)
+                                .getPayload();
+        }
 
-        keyPairGenerator.initialize(2048);
+        private static KeyPair generateRsaKeyPair() throws Exception {
+                KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
 
-        return keyPairGenerator.generateKeyPair();
-    }
+                keyPairGenerator.initialize(2048);
 
-    private static String toPem(PrivateKey privateKey) {
-        String encoded = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8))
-                .encodeToString(privateKey.getEncoded());
+                return keyPairGenerator.generateKeyPair();
+        }
 
-        return """
-                -----BEGIN PRIVATE KEY-----
-                %s
-                -----END PRIVATE KEY-----
-                """.formatted(encoded);
-    }
+        private static String toPem(PrivateKey privateKey) {
+                String encoded = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8))
+                                .encodeToString(privateKey.getEncoded());
 
-    private static String tamperWithPayload(String token) {
-        String[] parts = token.split("\\.");
+                return """
+                                -----BEGIN PRIVATE KEY-----
+                                %s
+                                -----END PRIVATE KEY-----
+                                """.formatted(encoded);
+        }
 
-        String payload = new String(
-                Base64.getUrlDecoder().decode(parts[1]),
-                StandardCharsets.UTF_8
-        );
+        private static String tamperWithPayload(String token) {
+                String[] parts = token.split("\\.");
 
-        String tamperedPayload = payload.replace(
-                "\"USER\"",
-                "\"ADMIN\""
-        );
+                String payload = new String(
+                                Base64.getUrlDecoder().decode(parts[1]),
+                                StandardCharsets.UTF_8);
 
-        String encodedPayload = Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(
-                        tamperedPayload.getBytes(StandardCharsets.UTF_8)
-                );
+                String tamperedPayload = payload.replace(
+                                "\"USER\"",
+                                "\"ADMIN\"");
 
-        return parts[0] + "." + encodedPayload + "." + parts[2];
-    }
+                String encodedPayload = Base64.getUrlEncoder()
+                                .withoutPadding()
+                                .encodeToString(
+                                                tamperedPayload.getBytes(StandardCharsets.UTF_8));
+
+                return parts[0] + "." + encodedPayload + "." + parts[2];
+        }
+
+        @Test
+        void shouldContainCustomerIdClaim() {
+                // Given
+                String token = jwtService.generateAccessToken(user);
+
+                // When
+                Claims claims = parseToken(token);
+
+                // Then
+                assertThat(claims.get("customerId", String.class))
+                                .isEqualTo(customerId.toString());
+        }
 }

@@ -44,3 +44,7 @@ build/
 .project
 .classpath
 .settings/
+
+.vscode/
+
+auth-service/keys/jwt-private.pem

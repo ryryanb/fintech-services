@@ -22,89 +22,87 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional
 public class FinancialAccountServiceImpl
-        implements FinancialAccountService {
+                implements FinancialAccountService {
 
-    private final FinancialAccountRepository repository;
+        private final FinancialAccountRepository repository;
 
-    @Override
-    public FinancialAccountResponse createAccount(
-            CreateFinancialAccountRequest request) {
+        @Override
+        public FinancialAccountResponse createAccount(
+                        CreateFinancialAccountRequest request) {
 
-        FinancialAccount account = FinancialAccount.builder()
-                .customerId(request.customerId())
-                .name(request.name().trim())
-                .type(request.type())
-                .currency(request.currency().toUpperCase())
-                .balance(request.balance())
-                .institutionName(
-                        request.institutionName() == null
-                                ? null
-                                : request.institutionName().trim()
-                )
-                .status(AccountStatus.ACTIVE)
-                .build();
+                FinancialAccount account = FinancialAccount.builder()
+                                .customerId(request.customerId())
+                                .name(request.name().trim())
+                                .type(request.type())
+                                .currency(request.currency().toUpperCase())
+                                .balance(request.balance())
+                                .institutionName(
+                                                request.institutionName() == null
+                                                                ? null
+                                                                : request.institutionName().trim())
+                                .status(AccountStatus.ACTIVE)
+                                .build();
 
-        FinancialAccount saved = repository.save(account);
+                FinancialAccount saved = repository.save(account);
 
-        return toResponse(saved);
-    }
+                return toResponse(saved);
+        }
 
-    private FinancialAccountResponse toResponse(
-            FinancialAccount account) {
+        private FinancialAccountResponse toResponse(
+                        FinancialAccount account) {
 
-        return new FinancialAccountResponse(
-                account.getId(),
-                account.getCustomerId(),
-                account.getName(),
-                account.getType(),
-                account.getCurrency(),
-                account.getBalance(),
-                account.getInstitutionName(),
-                account.getStatus()
-        );
-    }
+                return new FinancialAccountResponse(
+                                account.getId(),
+                                account.getCustomerId(),
+                                account.getName(),
+                                account.getType(),
+                                account.getCurrency(),
+                                account.getBalance(),
+                                account.getInstitutionName(),
+                                account.getStatus());
+        }
 
-    @Override
-@Transactional(readOnly = true)
-public List<FinancialAccountResponse> getAccounts(
-        UUID customerId) {
+        @Override
+        @Transactional(readOnly = true)
+        public List<FinancialAccountResponse> getAccounts(
+                        UUID customerId) {
 
-    return repository.findByCustomerId(customerId)
-            .stream()
-            .map(this::toResponse)
-            .toList();
-}
+                return repository.findByCustomerId(customerId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-@Override
-@Transactional(readOnly = true)
-public AccountBalanceResponse getAccountBalance(UUID accountId) {
+        @Override
+        @Transactional(readOnly = true)
+        public AccountBalanceResponse getAccountBalance(UUID accountId) {
 
-    FinancialAccount account = repository.findById(accountId)
-        .orElseThrow(() -> new FinancialAccountNotFoundException(accountId));
+                FinancialAccount account = repository.findById(accountId)
+                                .orElseThrow(() -> new FinancialAccountNotFoundException(accountId));
 
-    return new AccountBalanceResponse(
-            account.getId(),
-            account.getCurrency(),
-            account.getBalance()
-    );
-}
+                return new AccountBalanceResponse(
+                                account.getId(),
+                                account.getCurrency(),
+                                account.getBalance());
+        }
 
-@Override
-@Transactional(readOnly = true)
-public FinancialAccountResponse getAccount(UUID accountId) {
+        @Override
+        @Transactional(readOnly = true)
+        public FinancialAccountResponse getAccount(UUID accountId) {
 
-FinancialAccount account =
-        repository.findById(accountId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Financial account not found: " + accountId
-                        )
-                );
+                FinancialAccount account = repository.findById(accountId)
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Financial account not found: " + accountId));
 
-return toResponse(account);
+                return toResponse(account);
 
-    
-  
+        }
 
-}
+        @Override
+        @Transactional(readOnly = true)
+        public boolean belongsToCustomer(UUID accountId, UUID customerId) {
+                return repository.findById(accountId)
+                                .map(account -> account.getCustomerId().equals(customerId))
+                                .orElse(false);
+        }
 }

@@ -29,344 +29,330 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
+import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
-
-
 
 @ExtendWith(MockitoExtension.class)
 class FinancialTransactionServiceImplTest {
 
-    @Mock
-    private FinancialTransactionRepository transactionRepository;
-
-    @Mock
-private AccountServiceClient accountServiceClient;
-
-    @InjectMocks
-    private FinancialTransactionServiceImpl transactionService;
-
-    @Test
-void shouldReturnTransactionsForAccount() {
-    UUID accountId = UUID.randomUUID();
-
-    FinancialTransaction transaction =
-            FinancialTransaction.builder()
-                    .id(UUID.randomUUID())
-                    .accountId(accountId)
-                    .type(TransactionType.PAYMENT)
-                    .direction(TransactionDirection.DEBIT)
-                    .amount(new BigDecimal("1250.00"))
-                    .currency("PHP")
-                    .description("Utility payment")
-                    .status(TransactionStatus.COMPLETED)
-                    .transactionDate(OffsetDateTime.now())
-                    .build();
-
-    when(transactionRepository
-            .findByAccountIdOrderByTransactionDateDesc(accountId))
-            .thenReturn(List.of(transaction));
-
-    List<TransactionResponse> result =
-            transactionService.getTransactions(accountId);
-
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).accountId()).isEqualTo(accountId);
-    assertThat(result.get(0).amount())
-            .isEqualByComparingTo("1250.00");
-}
-
-@Test
-void shouldReturnEmptyListWhenAccountHasNoTransactions() {
-    UUID accountId = UUID.randomUUID();
-
-    when(transactionRepository
-            .findByAccountIdOrderByTransactionDateDesc(accountId))
-            .thenReturn(List.of());
-
-    List<TransactionResponse> result =
-            transactionService.getTransactions(accountId);
-
-    assertThat(result).isEmpty();
-}
-
-@Test
-void shouldCreateTransaction() {
-
-    UUID accountId = UUID.randomUUID();
-    UUID transactionId = UUID.randomUUID();
-
-    when(accountServiceClient.accountExists(accountId))
-        .thenReturn(true);
-
-    OffsetDateTime transactionDate =
-            OffsetDateTime.parse("2026-09-08T14:30:00Z");
-
-    TransactionRequest request = new TransactionRequest(
-            accountId,
-            TransactionType.PAYMENT,
-            TransactionDirection.DEBIT,
-            new BigDecimal("1250.00"),
-            "PHP",
-            "Utility payment",
-            "merchant",
-                TransactionCategory.FEES,
-            transactionDate
-    );
-
-    FinancialTransaction savedTransaction =
-            FinancialTransaction.builder()
-                    .id(transactionId)
-                    .accountId(accountId)
-                    .type(TransactionType.PAYMENT)
-                    .direction(TransactionDirection.DEBIT)
-                    .amount(new BigDecimal("1250.00"))
-                    .currency("PHP")
-                    .description("Utility payment")
-                    .status(TransactionStatus.COMPLETED)
-                    .transactionDate(transactionDate)
-                    .build();
-
-    when(transactionRepository.save(any(FinancialTransaction.class)))
-            .thenReturn(savedTransaction);
-
-    TransactionResponse result =
-            transactionService.createTransaction(request);
-
-    assertThat(result.id()).isEqualTo(transactionId);
-    assertThat(result.accountId()).isEqualTo(accountId);
-    assertThat(result.type()).isEqualTo(TransactionType.PAYMENT);
-    assertThat(result.direction()).isEqualTo(TransactionDirection.DEBIT);
-    assertThat(result.amount())
-            .isEqualByComparingTo("1250.00");
-    assertThat(result.currency()).isEqualTo("PHP");
-    assertThat(result.description()).isEqualTo("Utility payment");
-    assertThat(result.status())
-            .isEqualTo(TransactionStatus.COMPLETED);
-    assertThat(result.transactionDate())
-            .isEqualTo(transactionDate);
-}
-
-@Test
-void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
-
-    UUID accountId = UUID.randomUUID();
-
-    when(accountServiceClient.accountExists(accountId))
-        .thenReturn(true);
-
-    TransactionRequest request = new TransactionRequest(
-            accountId,
-            TransactionType.DEPOSIT,
-            TransactionDirection.CREDIT,
-            new BigDecimal("5000.00"),
-            "PHP",
-            "Cash deposit",
-            "merchant",
-                TransactionCategory.FEES,
-            null
-    );
-
-    when(transactionRepository.save(any(FinancialTransaction.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-
-    OffsetDateTime before = OffsetDateTime.now();
-
-    TransactionResponse result =
-            transactionService.createTransaction(request);
-
-    OffsetDateTime after = OffsetDateTime.now();
-
-    assertThat(result.transactionDate())
-            .isBetween(before, after);
-
-    assertThat(result.status())
-            .isEqualTo(TransactionStatus.COMPLETED);
-}
-
-@Test
-void shouldPersistTransactionWithCompletedStatus() {
-
-    UUID accountId = UUID.randomUUID();
-
-    when(accountServiceClient.accountExists(accountId))
-        .thenReturn(true);
-
-    TransactionRequest request = new TransactionRequest(
-            accountId,
-            TransactionType.TRANSFER,
-            TransactionDirection.DEBIT,
-            new BigDecimal("1500.00"),
-            "PHP",
-            "Transfer to savings",
-            "merchant",
-                TransactionCategory.FEES,
-            null
-    );
-
-    when(transactionRepository.save(any(FinancialTransaction.class)))
-            .thenAnswer(invocation -> {
-                FinancialTransaction transaction =
-                        invocation.getArgument(0);
-
-                transaction.setId(UUID.randomUUID());
-                return transaction;
-            });
-
-    transactionService.createTransaction(request);
-
-    ArgumentCaptor<FinancialTransaction> captor =
-            ArgumentCaptor.forClass(FinancialTransaction.class);
-
-    verify(transactionRepository).save(captor.capture());
-
-    FinancialTransaction persisted = captor.getValue();
-
-    assertThat(persisted.getAccountId()).isEqualTo(accountId);
-    assertThat(persisted.getType())
-            .isEqualTo(TransactionType.TRANSFER);
-    assertThat(persisted.getDirection())
-            .isEqualTo(TransactionDirection.DEBIT);
-    assertThat(persisted.getAmount())
-            .isEqualByComparingTo("1500.00");
-    assertThat(persisted.getCurrency()).isEqualTo("PHP");
-    assertThat(persisted.getStatus())
-            .isEqualTo(TransactionStatus.COMPLETED);
-}
-
-@Test
-void shouldAssociateTransactionWithExistingAccount() {
-
-UUID accountId = UUID.randomUUID();
-UUID transactionId = UUID.randomUUID();
-
-OffsetDateTime transactionDate =
-        OffsetDateTime.parse("2026-09-08T14:30:00Z");
-
-TransactionRequest request = new TransactionRequest(
-        accountId,
-        TransactionType.PAYMENT,
-        TransactionDirection.DEBIT,
-        new BigDecimal("1250.00"),
-        "PHP",
-        "Utility payment",
-        "merchant",
-                TransactionCategory.FEES,
-        transactionDate
-);
-
-FinancialTransaction savedTransaction =
-        FinancialTransaction.builder()
-                .id(transactionId)
-                .accountId(accountId)
-                .type(TransactionType.PAYMENT)
-                .direction(TransactionDirection.DEBIT)
-                .amount(new BigDecimal("1250.00"))
-                .currency("PHP")
-                .description("Utility payment")
-                .status(TransactionStatus.COMPLETED)
-                .transactionDate(transactionDate)
-                .build();
-
-when(accountServiceClient.accountExists(accountId))
-        .thenReturn(true);
-
-when(transactionRepository.save(any(FinancialTransaction.class)))
-        .thenReturn(savedTransaction);
-
-TransactionResponse result =
-        transactionService.createTransaction(request);
-
-assertThat(result.accountId())
-        .isEqualTo(accountId);
-
-verify(accountServiceClient)
-        .accountExists(accountId);
-
-verify(transactionRepository)
-        .save(any(FinancialTransaction.class));
-
-    
-  
-
-}
-
-@Test
-void shouldRejectTransactionWhenAccountDoesNotExist() {
-
-UUID accountId = UUID.randomUUID();
-
-TransactionRequest request = new TransactionRequest(
-        accountId,
-        TransactionType.PAYMENT,
-        TransactionDirection.DEBIT,
-        new BigDecimal("1250.00"),
-        "PHP",
-        "Utility payment",
-        "merchant",
-                TransactionCategory.FEES,
-        null
-);
-
-when(accountServiceClient.accountExists(accountId))
-        .thenReturn(false);
-
-assertThatThrownBy(() ->
-        transactionService.createTransaction(request)
-)
-        .isInstanceOf(AccountNotFoundException.class);
-
-verify(accountServiceClient)
-        .accountExists(accountId);
-
-verify(transactionRepository, never())
-        .save(any(FinancialTransaction.class));
-
-    
-  
-
-}
-
-@Test
-void shouldGetTransactionById() {
-
-    UUID transactionId = UUID.randomUUID();
-    UUID accountId = UUID.randomUUID();
-
-    OffsetDateTime transactionDate =
-            OffsetDateTime.parse("2026-09-09T14:30:00Z");
-
-    FinancialTransaction transaction =
-            FinancialTransaction.builder()
-                    .id(transactionId)
-                    .accountId(accountId)
-                    .type(TransactionType.PAYMENT)
-                    .direction(TransactionDirection.DEBIT)
-                    .amount(new BigDecimal("1250.00"))
-                    .currency("PHP")
-                    .merchant("SM Supermarket")
-                    .category(TransactionCategory.GROCERIES)
-                    .description("Weekly groceries")
-                    .status(TransactionStatus.COMPLETED)
-                    .transactionDate(transactionDate)
-                    .build();
-
-    when(transactionRepository.findById(transactionId))
-            .thenReturn(Optional.of(transaction));
-
-    TransactionResponse result =
-            transactionService.getTransaction(transactionId);
-
-    assertThat(result.id()).isEqualTo(transactionId);
-    assertThat(result.accountId()).isEqualTo(accountId);
-    assertThat(result.merchant()).isEqualTo("SM Supermarket");
-    assertThat(result.amount())
-            .isEqualByComparingTo("1250.00");
-    assertThat(result.transactionDate())
-            .isEqualTo(transactionDate);
-    assertThat(result.category())
-            .isEqualTo(TransactionCategory.GROCERIES);
-
-    verify(transactionRepository).findById(transactionId);
-}
+        @Mock
+        private FinancialTransactionRepository transactionRepository;
+
+        @Mock
+        private AccountServiceClient accountServiceClient;
+
+        @InjectMocks
+        private FinancialTransactionServiceImpl transactionService;
+
+        @Test
+        void shouldReturnTransactionsForAccount() {
+                UUID accountId = UUID.randomUUID();
+
+                FinancialTransaction transaction = FinancialTransaction.builder()
+                                .id(UUID.randomUUID())
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("1250.00"))
+                                .currency("PHP")
+                                .description("Utility payment")
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(OffsetDateTime.now())
+                                .build();
+
+                when(transactionRepository
+                                .findByAccountIdOrderByTransactionDateDesc(accountId))
+                                .thenReturn(List.of(transaction));
+
+                List<TransactionResponse> result = transactionService.getTransactions(accountId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).accountId()).isEqualTo(accountId);
+                assertThat(result.get(0).amount())
+                                .isEqualByComparingTo("1250.00");
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenAccountHasNoTransactions() {
+                UUID accountId = UUID.randomUUID();
+
+                when(transactionRepository
+                                .findByAccountIdOrderByTransactionDateDesc(accountId))
+                                .thenReturn(List.of());
+
+                List<TransactionResponse> result = transactionService.getTransactions(accountId);
+
+                assertThat(result).isEmpty();
+        }
+
+        @Test
+        void shouldCreateTransaction() {
+
+                UUID accountId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+
+                when(accountServiceClient.accountExists(accountId))
+                                .thenReturn(true);
+
+                OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-08T14:30:00Z");
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Utility payment",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                transactionDate);
+
+                FinancialTransaction savedTransaction = FinancialTransaction.builder()
+                                .id(transactionId)
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("1250.00"))
+                                .currency("PHP")
+                                .description("Utility payment")
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(transactionDate)
+                                .build();
+
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenReturn(savedTransaction);
+
+                TransactionResponse result = transactionService.createTransaction(request);
+
+                assertThat(result.id()).isEqualTo(transactionId);
+                assertThat(result.accountId()).isEqualTo(accountId);
+                assertThat(result.type()).isEqualTo(TransactionType.PAYMENT);
+                assertThat(result.direction()).isEqualTo(TransactionDirection.DEBIT);
+                assertThat(result.amount())
+                                .isEqualByComparingTo("1250.00");
+                assertThat(result.currency()).isEqualTo("PHP");
+                assertThat(result.description()).isEqualTo("Utility payment");
+                assertThat(result.status())
+                                .isEqualTo(TransactionStatus.COMPLETED);
+                assertThat(result.transactionDate())
+                                .isEqualTo(transactionDate);
+        }
+
+        @Test
+        void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
+
+                UUID accountId = UUID.randomUUID();
+
+                when(accountServiceClient.accountExists(accountId))
+                                .thenReturn(true);
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.DEPOSIT,
+                                TransactionDirection.CREDIT,
+                                new BigDecimal("5000.00"),
+                                "PHP",
+                                "Cash deposit",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                null);
+
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                OffsetDateTime before = OffsetDateTime.now();
+
+                TransactionResponse result = transactionService.createTransaction(request);
+
+                OffsetDateTime after = OffsetDateTime.now();
+
+                assertThat(result.transactionDate())
+                                .isBetween(before, after);
+
+                assertThat(result.status())
+                                .isEqualTo(TransactionStatus.COMPLETED);
+        }
+
+        @Test
+        void shouldPersistTransactionWithCompletedStatus() {
+
+                UUID accountId = UUID.randomUUID();
+
+                when(accountServiceClient.accountExists(accountId))
+                                .thenReturn(true);
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.TRANSFER,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1500.00"),
+                                "PHP",
+                                "Transfer to savings",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                null);
+
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> {
+                                        FinancialTransaction transaction = invocation.getArgument(0);
+
+                                        transaction.setId(UUID.randomUUID());
+                                        return transaction;
+                                });
+
+                transactionService.createTransaction(request);
+
+                ArgumentCaptor<FinancialTransaction> captor = ArgumentCaptor.forClass(FinancialTransaction.class);
+
+                verify(transactionRepository).save(captor.capture());
+
+                FinancialTransaction persisted = captor.getValue();
+
+                assertThat(persisted.getAccountId()).isEqualTo(accountId);
+                assertThat(persisted.getType())
+                                .isEqualTo(TransactionType.TRANSFER);
+                assertThat(persisted.getDirection())
+                                .isEqualTo(TransactionDirection.DEBIT);
+                assertThat(persisted.getAmount())
+                                .isEqualByComparingTo("1500.00");
+                assertThat(persisted.getCurrency()).isEqualTo("PHP");
+                assertThat(persisted.getStatus())
+                                .isEqualTo(TransactionStatus.COMPLETED);
+        }
+
+        @Test
+        void shouldAssociateTransactionWithExistingAccount() {
+
+                UUID accountId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+
+                OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-08T14:30:00Z");
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Utility payment",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                transactionDate);
+
+                FinancialTransaction savedTransaction = FinancialTransaction.builder()
+                                .id(transactionId)
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("1250.00"))
+                                .currency("PHP")
+                                .description("Utility payment")
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(transactionDate)
+                                .build();
+
+                when(accountServiceClient.accountExists(accountId))
+                                .thenReturn(true);
+
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenReturn(savedTransaction);
+
+                TransactionResponse result = transactionService.createTransaction(request);
+
+                assertThat(result.accountId())
+                                .isEqualTo(accountId);
+
+                verify(accountServiceClient)
+                                .accountExists(accountId);
+
+                verify(transactionRepository)
+                                .save(any(FinancialTransaction.class));
+
+        }
+
+        @Test
+        void shouldRejectTransactionWhenAccountDoesNotExist() {
+
+                UUID accountId = UUID.randomUUID();
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Utility payment",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                null);
+
+                when(accountServiceClient.accountExists(accountId))
+                                .thenReturn(false);
+
+                assertThatThrownBy(() -> transactionService.createTransaction(request))
+                                .isInstanceOf(AccountNotFoundException.class);
+
+                verify(accountServiceClient)
+                                .accountExists(accountId);
+
+                verify(transactionRepository, never())
+                                .save(any(FinancialTransaction.class));
+
+        }
+
+        @Test
+        void shouldGetTransactionById() {
+
+                UUID transactionId = UUID.randomUUID();
+                UUID accountId = UUID.randomUUID();
+
+                OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-09T14:30:00Z");
+
+                FinancialTransaction transaction = FinancialTransaction.builder()
+                                .id(transactionId)
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("1250.00"))
+                                .currency("PHP")
+                                .merchant("SM Supermarket")
+                                .category(TransactionCategory.GROCERIES)
+                                .description("Weekly groceries")
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(transactionDate)
+                                .build();
+
+                when(transactionRepository.findById(transactionId))
+                                .thenReturn(Optional.of(transaction));
+
+                TransactionResponse result = transactionService.getTransaction(transactionId);
+
+                assertThat(result.id()).isEqualTo(transactionId);
+                assertThat(result.accountId()).isEqualTo(accountId);
+                assertThat(result.merchant()).isEqualTo("SM Supermarket");
+                assertThat(result.amount())
+                                .isEqualByComparingTo("1250.00");
+                assertThat(result.transactionDate())
+                                .isEqualTo(transactionDate);
+                assertThat(result.category())
+                                .isEqualTo(TransactionCategory.GROCERIES);
+
+                verify(transactionRepository).findById(transactionId);
+        }
+
+        @Test
+        void shouldThrowWhenTransactionDoesNotExist() {
+
+                UUID transactionId = UUID.randomUUID();
+
+                when(transactionRepository.findById(transactionId))
+                                .thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> transactionService.getTransaction(transactionId))
+                                .isInstanceOf(TransactionNotFoundException.class)
+                                .hasMessage("Transaction not found: " + transactionId);
+
+                verify(transactionRepository).findById(transactionId);
+        }
 
 }

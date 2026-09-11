@@ -47,8 +47,7 @@ class FinancialTransactionControllerTest {
         UUID transactionId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
 
-        OffsetDateTime transactionDate =
-                OffsetDateTime.parse("2026-09-08T14:30:00Z");
+        OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-08T14:30:00Z");
 
         TransactionRequest request = new TransactionRequest(
                 accountId,
@@ -56,12 +55,11 @@ class FinancialTransactionControllerTest {
                 TransactionDirection.DEBIT,
                 new BigDecimal("1250.00"),
                 "PHP",
-                
+
                 "Utility payment",
                 "merchant",
                 TransactionCategory.FEES,
-                transactionDate
-        );
+                transactionDate);
 
         TransactionResponse response = new TransactionResponse(
                 transactionId,
@@ -74,15 +72,14 @@ class FinancialTransactionControllerTest {
                 TransactionCategory.FEES,
                 "Utility payment",
                 TransactionStatus.COMPLETED,
-                transactionDate
-        );
+                transactionDate);
 
         when(transactionService.createTransaction(any(TransactionRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(transactionId.toString()))
                 .andExpect(jsonPath("$.accountId").value(accountId.toString()))
@@ -107,77 +104,72 @@ class FinancialTransactionControllerTest {
                 "Invalid payment",
                 "merchant",
                 TransactionCategory.FEES,
-                null
-        );
+                null);
 
         mockMvc.perform(post("/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
-@Test
-void shouldGetTransactionById() throws Exception {
 
-    UUID transactionId = UUID.randomUUID();
-    UUID accountId = UUID.randomUUID();
+    @Test
+    void shouldGetTransactionById() throws Exception {
 
-    TransactionResponse response =
-            new TransactionResponse(
-                    transactionId,
-                    accountId,
-                    TransactionType.PAYMENT,
-                    TransactionDirection.DEBIT,
-                    new BigDecimal("1250.00"),
-                    "PHP",
-                    "SM Supermarket",
-                    TransactionCategory.GROCERIES,
-                    "Weekly groceries",
-                    TransactionStatus.COMPLETED,
-                    OffsetDateTime.parse("2026-09-09T14:30:00Z")
-            );
+        UUID transactionId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
 
-    when(transactionService.getTransaction(transactionId))
-            .thenReturn(response);
+        TransactionResponse response = new TransactionResponse(
+                transactionId,
+                accountId,
+                TransactionType.PAYMENT,
+                TransactionDirection.DEBIT,
+                new BigDecimal("1250.00"),
+                "PHP",
+                "SM Supermarket",
+                TransactionCategory.GROCERIES,
+                "Weekly groceries",
+                TransactionStatus.COMPLETED,
+                OffsetDateTime.parse("2026-09-09T14:30:00Z"));
 
-    mockMvc.perform(
-            get("/transactions/{transactionId}", transactionId)
-    )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id")
-                    .value(transactionId.toString()))
-            .andExpect(jsonPath("$.accountId")
-                    .value(accountId.toString()))
-            .andExpect(jsonPath("$.merchant")
-                    .value("SM Supermarket"))
-            .andExpect(jsonPath("$.amount")
-                    .value(1250.00))
-            .andExpect(jsonPath("$.currency")
-                    .value("PHP"))
-            .andExpect(jsonPath("$.category")
-                    .value("GROCERIES"))
-            .andExpect(jsonPath("$.description")
-                    .value("Weekly groceries"))
-            .andExpect(jsonPath("$.status")
-                    .value("COMPLETED"));
-}
+        when(transactionService.getTransaction(transactionId))
+                .thenReturn(response);
 
-@Test
-void shouldReturnNotFoundWhenTransactionDoesNotExist()
-        throws Exception {
+        mockMvc.perform(
+                get("/transactions/{transactionId}", transactionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id")
+                        .value(transactionId.toString()))
+                .andExpect(jsonPath("$.accountId")
+                        .value(accountId.toString()))
+                .andExpect(jsonPath("$.merchant")
+                        .value("SM Supermarket"))
+                .andExpect(jsonPath("$.amount")
+                        .value(1250.00))
+                .andExpect(jsonPath("$.currency")
+                        .value("PHP"))
+                .andExpect(jsonPath("$.category")
+                        .value("GROCERIES"))
+                .andExpect(jsonPath("$.description")
+                        .value("Weekly groceries"))
+                .andExpect(jsonPath("$.status")
+                        .value("COMPLETED"));
+    }
 
-    UUID transactionId = UUID.randomUUID();
+    @Test
+    void shouldReturnNotFoundWhenTransactionDoesNotExist()
+            throws Exception {
 
-    when(transactionService.getTransaction(transactionId))
-            .thenThrow(
-                    new TransactionNotFoundException(transactionId)
-            );
+        UUID transactionId = UUID.randomUUID();
 
-    mockMvc.perform(
-            get("/transactions/{transactionId}", transactionId)
-    )
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.error")
-                    .value("TRANSACTION_NOT_FOUND"));
-}
-    
+        when(transactionService.getTransaction(transactionId))
+                .thenThrow(
+                        new TransactionNotFoundException(transactionId));
+
+        mockMvc.perform(
+                get("/transactions/{transactionId}", transactionId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error")
+                        .value("TRANSACTION_NOT_FOUND"));
+    }
+
 }
