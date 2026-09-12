@@ -43,9 +43,9 @@ public class FinancialTransactionController {
     }
 
     @GetMapping("/{transactionId}")
-public TransactionResponse getTransaction(
-        @PathVariable UUID transactionId) {
+    public TransactionResponse getTransaction(
+            @PathVariable UUID transactionId) {
 
-    return transactionService.getTransaction(transactionId);
-}
+        return transactionService.getTransaction(transactionId);
+    }
 }

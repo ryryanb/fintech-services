@@ -22,7 +22,7 @@ server:
 security:
   jwt:
     private-key-path: ${JWT_PRIVATE_KEY_PATH}
-    expiration-seconds: 900
+    expiration-seconds: 90000
 
 services:
   customer-service:

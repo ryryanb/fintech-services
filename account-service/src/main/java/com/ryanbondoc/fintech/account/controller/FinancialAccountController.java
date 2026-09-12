@@ -84,7 +84,12 @@ public class FinancialAccountController {
 
         @GetMapping("/{accountId}")
         public ResponseEntity<FinancialAccountResponse> getAccount(
-                        @PathVariable UUID accountId) {
+                        @PathVariable UUID accountId, Authentication authentication) {
+                FinancialAccountResponse account = financialAccountService.getAccount(accountId);
+
+                accountAuthorizationService.authorizeAccountAccess(
+                                account,
+                                authentication);
                 return ResponseEntity.ok(
                                 financialAccountService.getAccount(accountId));
 
