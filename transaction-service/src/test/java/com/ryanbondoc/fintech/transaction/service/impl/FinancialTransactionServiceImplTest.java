@@ -22,6 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
@@ -48,8 +50,15 @@ class FinancialTransactionServiceImplTest {
         @Mock
         private TransactionAuthorizationService transactionAuthorizationService;
 
+        /*
+         * @Mock
+         * private Authentication authentication;
+         */
+
         @Mock
-        private Authentication authentication;
+        private JwtAuthenticationToken authentication;
+
+        private static final String BEARER_TOKEN = "Bearer test-token";
 
         @InjectMocks
         private FinancialTransactionServiceImpl transactionService;
@@ -101,7 +110,9 @@ class FinancialTransactionServiceImplTest {
                 UUID accountId = UUID.randomUUID();
                 UUID transactionId = UUID.randomUUID();
 
-                String bearerToken = "Bearer test-token";
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
 
                 when(accountServiceClient.accountExists(
                                 eq(accountId),
@@ -157,7 +168,9 @@ class FinancialTransactionServiceImplTest {
 
                 UUID accountId = UUID.randomUUID();
 
-                String bearerToken = "Bearer test-token";
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
 
                 when(accountServiceClient.accountExists(
                                 eq(accountId),
@@ -196,7 +209,9 @@ class FinancialTransactionServiceImplTest {
 
                 UUID accountId = UUID.randomUUID();
 
-                String bearerToken = "Bearer test-token";
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
 
                 when(accountServiceClient.accountExists(
                                 eq(accountId),
@@ -273,7 +288,9 @@ class FinancialTransactionServiceImplTest {
                                 .transactionDate(transactionDate)
                                 .build();
 
-                String bearerToken = "Bearer test-token";
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
 
                 when(accountServiceClient.accountExists(
                                 eq(accountId),
@@ -312,14 +329,18 @@ class FinancialTransactionServiceImplTest {
                                 TransactionCategory.FEES,
                                 null);
 
-                String bearerToken = "Bearer test-token";
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
 
                 when(accountServiceClient.accountExists(
                                 eq(accountId),
                                 eq(bearerToken)))
-                                .thenReturn(true);
+                                .thenReturn(false);
 
-                assertThatThrownBy(() -> transactionService.createTransaction(request, authentication))
+                assertThatThrownBy(() -> transactionService.createTransaction(
+                                request,
+                                authentication))
                                 .isInstanceOf(AccountNotFoundException.class);
 
                 verify(accountServiceClient)
@@ -395,6 +416,20 @@ class FinancialTransactionServiceImplTest {
                                 .hasMessage("Transaction not found: " + transactionId);
 
                 verify(transactionRepository).findById(transactionId);
+        }
+
+        private JwtAuthenticationToken createAuthentication() {
+
+                Jwt jwt = Jwt.withTokenValue("test-token")
+                                .header("alg", "RS256")
+                                .claim("sub", UUID.randomUUID().toString())
+                                .claim("customerId", UUID.randomUUID().toString())
+                                .claim("roles", List.of("USER"))
+                                .issuedAt(java.time.Instant.now())
+                                .expiresAt(java.time.Instant.now().plusSeconds(3600))
+                                .build();
+
+                return new JwtAuthenticationToken(jwt);
         }
 
 }
