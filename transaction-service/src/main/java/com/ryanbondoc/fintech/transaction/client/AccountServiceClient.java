@@ -4,10 +4,10 @@ import java.util.UUID;
 
 public interface AccountServiceClient {
 
+    boolean accountExists(UUID accountId, String bearerToken);
 
-boolean accountExists(UUID accountId);
-
-    
-  
+    AccountOwnershipResponse getAccountOwnership(
+            UUID accountId,
+            String bearerToken);
 
 }

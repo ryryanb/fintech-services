@@ -21,6 +21,8 @@ import com.ryanbondoc.fintech.account.exception.ForbiddenException;
 import com.ryanbondoc.fintech.account.security.AccountAuthorizationService;
 import com.ryanbondoc.fintech.account.service.FinancialAccountService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +34,7 @@ public class FinancialAccountController {
         private final FinancialAccountService financialAccountService;
         private final AccountAuthorizationService accountAuthorizationService;
 
+        @Operation(summary = "Create an account", description = "Creates an account for the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
         @PostMapping
         public ResponseEntity<FinancialAccountResponse> createAccount(
                         @Valid @RequestBody CreateFinancialAccountRequest request,
@@ -48,6 +51,7 @@ public class FinancialAccountController {
                                 .body(response);
         }
 
+        @Operation(summary = "Retrieve accounts", description = "Retrieve accounts of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
         @GetMapping
         public ResponseEntity<List<FinancialAccountResponse>> getAccounts(
                         @RequestParam UUID customerId,
@@ -62,6 +66,7 @@ public class FinancialAccountController {
                 return ResponseEntity.ok(accounts);
         }
 
+        @Operation(summary = "Get the account balance", description = "Retrieve account balance of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
         @GetMapping("/{accountId}/balance")
         public ResponseEntity<AccountBalanceResponse> getAccountBalance(
                         @PathVariable UUID accountId,
@@ -82,6 +87,7 @@ public class FinancialAccountController {
                 return ResponseEntity.ok(response);
         }
 
+        @Operation(summary = "Retrieve an account", description = "Retrieve the specified account of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
         @GetMapping("/{accountId}")
         public ResponseEntity<FinancialAccountResponse> getAccount(
                         @PathVariable UUID accountId, Authentication authentication) {

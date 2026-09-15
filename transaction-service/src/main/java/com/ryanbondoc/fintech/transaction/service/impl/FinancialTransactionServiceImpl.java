@@ -4,6 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,102 +19,108 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
+import com.ryanbondoc.fintech.transaction.security.TransactionAuthorizationService;
 import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
 
 import lombok.RequiredArgsConstructor;
-
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class FinancialTransactionServiceImpl
-implements FinancialTransactionService {
+                implements FinancialTransactionService {
 
+        private final FinancialTransactionRepository transactionRepository;
+        private final AccountServiceClient accountServiceClient;
+        private final TransactionAuthorizationService transactionAuthorizationService;
 
-private final FinancialTransactionRepository transactionRepository;
-private final AccountServiceClient accountServiceClient;
+        @Override
+        @Transactional(readOnly = true)
+        public List<TransactionResponse> getTransactions(UUID accountId) {
 
-@Override
-@Transactional(readOnly = true)
-public List<TransactionResponse> getTransactions(UUID accountId) {
+                return transactionRepository
+                                .findByAccountIdOrderByTransactionDateDesc(accountId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-    return transactionRepository
-            .findByAccountIdOrderByTransactionDateDesc(accountId)
-            .stream()
-            .map(this::toResponse)
-            .toList();
-}
+        @Override
+        public TransactionResponse createTransaction(
+                        TransactionRequest request, Authentication authentication) {
 
-@Override
-public TransactionResponse createTransaction(
-        TransactionRequest request) {
+                UUID accountId = request.accountId();
 
-    UUID accountId = request.accountId();
+                String bearerToken = extractBearerToken(authentication);
 
-    if (!accountServiceClient.accountExists(accountId)) {
-        throw new AccountNotFoundException(accountId);
-    }
+                if (!accountServiceClient.accountExists(accountId, bearerToken)) {
+                        throw new AccountNotFoundException(accountId);
+                }
 
-    FinancialTransaction transaction =
-        FinancialTransaction.builder()
-                .accountId(accountId)
-                .type(request.type())
-                .direction(request.direction())
-                .amount(request.amount())
-                .currency(request.currency())
-                .merchant(request.merchant())
-                .category(
-                        request.category() != null
-                                ? request.category()
-                                : TransactionCategory.OTHER
-                )
-                .description(request.description())
-                .status(TransactionStatus.COMPLETED)
-                .transactionDate(
-                        request.transactionDate() != null
-                                ? request.transactionDate()
-                                : OffsetDateTime.now()
-                )
-                .build();
+                FinancialTransaction transaction = FinancialTransaction.builder()
+                                .accountId(accountId)
+                                .type(request.type())
+                                .direction(request.direction())
+                                .amount(request.amount())
+                                .currency(request.currency())
+                                .merchant(request.merchant())
+                                .category(
+                                                request.category() != null
+                                                                ? request.category()
+                                                                : TransactionCategory.OTHER)
+                                .description(request.description())
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(
+                                                request.transactionDate() != null
+                                                                ? request.transactionDate()
+                                                                : OffsetDateTime.now())
+                                .build();
 
-    FinancialTransaction saved =
-            transactionRepository.save(transaction);
+                FinancialTransaction saved = transactionRepository.save(transaction);
 
-    return toResponse(saved);
-}
+                return toResponse(saved);
+        }
 
-private TransactionResponse toResponse(
-        FinancialTransaction transaction) {
+        private TransactionResponse toResponse(
+                        FinancialTransaction transaction) {
 
-    return new TransactionResponse(
-            transaction.getId(),
-            transaction.getAccountId(),
-            transaction.getType(),
-            transaction.getDirection(),
-            transaction.getAmount(),
-            transaction.getCurrency(),
-            transaction.getMerchant(),
-            transaction.getCategory(),
-            transaction.getDescription(),
-            transaction.getStatus(),
-            
-            transaction.getTransactionDate()
-    );
-}
+                return new TransactionResponse(
+                                transaction.getId(),
+                                transaction.getAccountId(),
+                                transaction.getType(),
+                                transaction.getDirection(),
+                                transaction.getAmount(),
+                                transaction.getCurrency(),
+                                transaction.getMerchant(),
+                                transaction.getCategory(),
+                                transaction.getDescription(),
+                                transaction.getStatus(),
 
-@Override
-@Transactional(readOnly = true)
-public TransactionResponse getTransaction(UUID transactionId) {
+                                transaction.getTransactionDate());
+        }
 
-    FinancialTransaction transaction =
-            transactionRepository.findById(transactionId)
-                    .orElseThrow(() ->
-                            new TransactionNotFoundException(transactionId)
-                    );
+        @Override
+        @Transactional(readOnly = true)
+        public TransactionResponse getTransaction(UUID transactionId, Authentication authentication) {
 
-    return toResponse(transaction);
-}
-    
-  
+                FinancialTransaction transaction = transactionRepository.findById(transactionId)
+                                .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+
+                transactionAuthorizationService.authorizeTransactionAccess(
+                                transaction,
+                                authentication);
+
+                return toResponse(transaction);
+        }
+
+        private String extractBearerToken(
+                        Authentication authentication) {
+
+                if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+                        throw new AccessDeniedException("Invalid authentication");
+                }
+
+                return "Bearer " + jwtAuthentication.getToken().getTokenValue();
+        }
 
 }

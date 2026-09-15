@@ -3,6 +3,8 @@ package com.ryanbondoc.fintech.transaction.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
@@ -31,6 +34,7 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionType;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
+import com.ryanbondoc.fintech.transaction.security.TransactionAuthorizationService;
 
 @ExtendWith(MockitoExtension.class)
 class FinancialTransactionServiceImplTest {
@@ -40,6 +44,12 @@ class FinancialTransactionServiceImplTest {
 
         @Mock
         private AccountServiceClient accountServiceClient;
+
+        @Mock
+        private TransactionAuthorizationService transactionAuthorizationService;
+
+        @Mock
+        private Authentication authentication;
 
         @InjectMocks
         private FinancialTransactionServiceImpl transactionService;
@@ -91,7 +101,11 @@ class FinancialTransactionServiceImplTest {
                 UUID accountId = UUID.randomUUID();
                 UUID transactionId = UUID.randomUUID();
 
-                when(accountServiceClient.accountExists(accountId))
+                String bearerToken = "Bearer test-token";
+
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
                                 .thenReturn(true);
 
                 OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-08T14:30:00Z");
@@ -122,7 +136,7 @@ class FinancialTransactionServiceImplTest {
                 when(transactionRepository.save(any(FinancialTransaction.class)))
                                 .thenReturn(savedTransaction);
 
-                TransactionResponse result = transactionService.createTransaction(request);
+                TransactionResponse result = transactionService.createTransaction(request, authentication);
 
                 assertThat(result.id()).isEqualTo(transactionId);
                 assertThat(result.accountId()).isEqualTo(accountId);
@@ -143,7 +157,11 @@ class FinancialTransactionServiceImplTest {
 
                 UUID accountId = UUID.randomUUID();
 
-                when(accountServiceClient.accountExists(accountId))
+                String bearerToken = "Bearer test-token";
+
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
                                 .thenReturn(true);
 
                 TransactionRequest request = new TransactionRequest(
@@ -162,7 +180,7 @@ class FinancialTransactionServiceImplTest {
 
                 OffsetDateTime before = OffsetDateTime.now();
 
-                TransactionResponse result = transactionService.createTransaction(request);
+                TransactionResponse result = transactionService.createTransaction(request, authentication);
 
                 OffsetDateTime after = OffsetDateTime.now();
 
@@ -178,7 +196,11 @@ class FinancialTransactionServiceImplTest {
 
                 UUID accountId = UUID.randomUUID();
 
-                when(accountServiceClient.accountExists(accountId))
+                String bearerToken = "Bearer test-token";
+
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
                                 .thenReturn(true);
 
                 TransactionRequest request = new TransactionRequest(
@@ -200,7 +222,7 @@ class FinancialTransactionServiceImplTest {
                                         return transaction;
                                 });
 
-                transactionService.createTransaction(request);
+                transactionService.createTransaction(request, authentication);
 
                 ArgumentCaptor<FinancialTransaction> captor = ArgumentCaptor.forClass(FinancialTransaction.class);
 
@@ -251,19 +273,23 @@ class FinancialTransactionServiceImplTest {
                                 .transactionDate(transactionDate)
                                 .build();
 
-                when(accountServiceClient.accountExists(accountId))
+                String bearerToken = "Bearer test-token";
+
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
                                 .thenReturn(true);
 
                 when(transactionRepository.save(any(FinancialTransaction.class)))
                                 .thenReturn(savedTransaction);
 
-                TransactionResponse result = transactionService.createTransaction(request);
+                TransactionResponse result = transactionService.createTransaction(request, authentication);
 
                 assertThat(result.accountId())
                                 .isEqualTo(accountId);
 
                 verify(accountServiceClient)
-                                .accountExists(accountId);
+                                .accountExists(accountId, bearerToken);
 
                 verify(transactionRepository)
                                 .save(any(FinancialTransaction.class));
@@ -286,14 +312,18 @@ class FinancialTransactionServiceImplTest {
                                 TransactionCategory.FEES,
                                 null);
 
-                when(accountServiceClient.accountExists(accountId))
-                                .thenReturn(false);
+                String bearerToken = "Bearer test-token";
 
-                assertThatThrownBy(() -> transactionService.createTransaction(request))
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
+                                .thenReturn(true);
+
+                assertThatThrownBy(() -> transactionService.createTransaction(request, authentication))
                                 .isInstanceOf(AccountNotFoundException.class);
 
                 verify(accountServiceClient)
-                                .accountExists(accountId);
+                                .accountExists(accountId, bearerToken);
 
                 verify(transactionRepository, never())
                                 .save(any(FinancialTransaction.class));
@@ -325,7 +355,13 @@ class FinancialTransactionServiceImplTest {
                 when(transactionRepository.findById(transactionId))
                                 .thenReturn(Optional.of(transaction));
 
-                TransactionResponse result = transactionService.getTransaction(transactionId);
+                Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+
+                doNothing().when(transactionAuthorizationService)
+                                .authorizeTransactionAccess(
+                                                eq(transaction),
+                                                eq(authentication));
+                TransactionResponse result = transactionService.getTransaction(transactionId, authentication);
 
                 assertThat(result.id()).isEqualTo(transactionId);
                 assertThat(result.accountId()).isEqualTo(accountId);
@@ -338,6 +374,10 @@ class FinancialTransactionServiceImplTest {
                                 .isEqualTo(TransactionCategory.GROCERIES);
 
                 verify(transactionRepository).findById(transactionId);
+                verify(transactionAuthorizationService)
+                                .authorizeTransactionAccess(
+                                                eq(transaction),
+                                                eq(authentication));
         }
 
         @Test
@@ -348,7 +388,9 @@ class FinancialTransactionServiceImplTest {
                 when(transactionRepository.findById(transactionId))
                                 .thenReturn(Optional.empty());
 
-                assertThatThrownBy(() -> transactionService.getTransaction(transactionId))
+                Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+
+                assertThatThrownBy(() -> transactionService.getTransaction(transactionId, authentication))
                                 .isInstanceOf(TransactionNotFoundException.class)
                                 .hasMessage("Transaction not found: " + transactionId);
 

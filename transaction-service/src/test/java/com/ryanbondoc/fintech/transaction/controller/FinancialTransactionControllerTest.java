@@ -1,6 +1,8 @@
 package com.ryanbondoc.fintech.transaction.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,8 +15,13 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.web.OAuth2ResourceServerWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,6 +37,11 @@ import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
 import tools.jackson.databind.ObjectMapper;
 
 @WebMvcTest(FinancialTransactionController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@ImportAutoConfiguration(exclude = {
+                OAuth2ResourceServerAutoConfiguration.class,
+                OAuth2ResourceServerWebSecurityAutoConfiguration.class
+})
 class FinancialTransactionControllerTest {
 
         @Autowired
@@ -74,7 +86,9 @@ class FinancialTransactionControllerTest {
                                 TransactionStatus.COMPLETED,
                                 transactionDate);
 
-                when(transactionService.createTransaction(any(TransactionRequest.class)))
+                when(transactionService.createTransaction(
+                                any(TransactionRequest.class),
+                                nullable(Authentication.class)))
                                 .thenReturn(response);
 
                 mockMvc.perform(post("/transactions")
@@ -131,7 +145,9 @@ class FinancialTransactionControllerTest {
                                 TransactionStatus.COMPLETED,
                                 OffsetDateTime.parse("2026-09-09T14:30:00Z"));
 
-                when(transactionService.getTransaction(transactionId))
+                when(transactionService.getTransaction(
+                                eq(transactionId),
+                                nullable(Authentication.class)))
                                 .thenReturn(response);
 
                 mockMvc.perform(
@@ -161,7 +177,9 @@ class FinancialTransactionControllerTest {
 
                 UUID transactionId = UUID.randomUUID();
 
-                when(transactionService.getTransaction(transactionId))
+                when(transactionService.getTransaction(
+                                eq(transactionId),
+                                nullable(Authentication.class)))
                                 .thenThrow(
                                                 new TransactionNotFoundException(transactionId));
 

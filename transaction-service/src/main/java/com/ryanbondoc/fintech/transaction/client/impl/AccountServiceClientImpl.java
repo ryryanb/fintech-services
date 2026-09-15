@@ -2,55 +2,67 @@ package com.ryanbondoc.fintech.transaction.client.impl;
 
 import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.ryanbondoc.fintech.transaction.client.AccountOwnershipResponse;
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
-
 
 @Component
 public class AccountServiceClientImpl
-implements AccountServiceClient {
+        implements AccountServiceClient {
 
+    private final RestClient restClient;
 
-private final RestClient restClient;
+    public AccountServiceClientImpl(
+            RestClient.Builder restClientBuilder,
+            AccountServiceProperties properties) {
 
-public AccountServiceClientImpl(
-        RestClient.Builder restClientBuilder,
-        AccountServiceProperties properties) {
+        this.restClient = restClientBuilder
+                .baseUrl(properties.baseUrl())
+                .build();
+    }
 
-    this.restClient = restClientBuilder
-            .baseUrl(properties.baseUrl())
-            .build();
-}
+    @Override
+    public boolean accountExists(UUID accountId,
+            String bearerToken) {
 
-@Override
-public boolean accountExists(UUID accountId) {
+        try {
+            restClient
+                    .get()
+                    .uri("/accounts/{accountId}", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity();
 
-    try {
-        restClient
+            return true;
+
+        } catch (RestClientResponseException exception) {
+
+            if (exception.getStatusCode()
+                    .equals(HttpStatus.NOT_FOUND)) {
+
+                return false;
+            }
+
+            throw exception;
+        }
+    }
+
+    @Override
+    public AccountOwnershipResponse getAccountOwnership(
+            UUID accountId,
+            String bearerToken) {
+
+        return restClient
                 .get()
                 .uri("/accounts/{accountId}", accountId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .retrieve()
-                .toBodilessEntity();
-
-        return true;
-
-    } catch (RestClientResponseException exception) {
-
-        if (exception.getStatusCode()
-                .equals(HttpStatus.NOT_FOUND)) {
-
-            return false;
-        }
-
-        throw exception;
+                .body(AccountOwnershipResponse.class);
     }
-}
-
-    
-  
 
 }

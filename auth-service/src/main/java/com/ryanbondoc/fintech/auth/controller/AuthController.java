@@ -13,6 +13,7 @@ import com.ryanbondoc.fintech.auth.dto.RegisterRequest;
 import com.ryanbondoc.fintech.auth.dto.RegisterResponse;
 import com.ryanbondoc.fintech.auth.service.AuthService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -25,10 +26,10 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @Operation(summary = "Register user", description = "Register a user/customer.")
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(
-            @Valid @RequestBody RegisterRequest request
-    ) {
+            @Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = authService.register(request);
 
         return ResponseEntity
@@ -36,13 +37,12 @@ public class AuthController {
                 .body(response);
     }
 
+    @Operation(summary = "Authenticate user", description = "Authenticates credentials and returns a signed JWT.")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
-            @Valid @RequestBody LoginRequest request
-    ) {
+            @Valid @RequestBody LoginRequest request) {
 
-        LoginResponse response =
-                authService.login(request);
+        LoginResponse response = authService.login(request);
 
         return ResponseEntity.ok(response);
     }
