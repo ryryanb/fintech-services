@@ -7,34 +7,37 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
 @RestControllerAdvice
 public class TransactionExceptionHandler {
 
+        @ExceptionHandler(AccountNotFoundException.class)
+        @ResponseStatus(HttpStatus.NOT_FOUND)
+        public Map<String, String> handleAccountNotFound(
+                        AccountNotFoundException exception) {
 
-@ExceptionHandler(AccountNotFoundException.class)
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public Map<String, String> handleAccountNotFound(
-        AccountNotFoundException exception) {
+                return Map.of(
+                                "error", "ACCOUNT_NOT_FOUND",
+                                "message", exception.getMessage());
+        }
 
-    return Map.of(
-            "error", "ACCOUNT_NOT_FOUND",
-            "message", exception.getMessage()
-    );
-}
+        @ExceptionHandler(TransactionNotFoundException.class)
+        @ResponseStatus(HttpStatus.NOT_FOUND)
+        public Map<String, String> handleTransactionNotFound(
+                        TransactionNotFoundException exception) {
 
-@ExceptionHandler(TransactionNotFoundException.class)
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public Map<String, String> handleTransactionNotFound(
-        TransactionNotFoundException exception) {
+                return Map.of(
+                                "error", "TRANSACTION_NOT_FOUND",
+                                "message", exception.getMessage());
+        }
 
-    return Map.of(
-            "error", "TRANSACTION_NOT_FOUND",
-            "message", exception.getMessage()
-    );
-}
+        @ExceptionHandler(AccountAccessDeniedException.class)
+        @ResponseStatus(HttpStatus.FORBIDDEN)
+        public Map<String, String> handleAccountAccessDenied(
+                        AccountAccessDeniedException exception) {
 
-    
-  
+                return Map.of(
+                                "error", "FORBIDDEN",
+                                "message", exception.getMessage());
+        }
 
 }

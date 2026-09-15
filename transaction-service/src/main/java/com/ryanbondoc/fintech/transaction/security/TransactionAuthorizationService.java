@@ -109,4 +109,27 @@ public class TransactionAuthorizationService {
 
         return "Bearer " + jwtAuthentication.getToken().getTokenValue();
     }
+
+    public void authorizeAccountAccess(
+            UUID accountId,
+            Authentication authentication) {
+
+        UUID authenticatedCustomerId = extractCustomerId(authentication);
+
+        String bearerToken = extractBearerToken(authentication);
+
+        AccountOwnershipResponse account = accountServiceClient.getAccountOwnership(
+                accountId,
+                bearerToken);
+
+        if (account == null || account.customerId() == null) {
+            throw new AccessDeniedException(
+                    "Unable to verify account ownership");
+        }
+
+        if (!authenticatedCustomerId.equals(account.customerId())) {
+            throw new AccessDeniedException(
+                    "Account does not belong to authenticated customer");
+        }
+    }
 }

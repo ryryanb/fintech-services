@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import com.ryanbondoc.fintech.transaction.client.AccountOwnershipResponse;
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
+import com.ryanbondoc.fintech.transaction.exception.AccountAccessDeniedException;
 
 @Component
 public class AccountServiceClientImpl
@@ -27,14 +28,17 @@ public class AccountServiceClientImpl
     }
 
     @Override
-    public boolean accountExists(UUID accountId,
+    public boolean accountExists(
+            UUID accountId,
             String bearerToken) {
 
         try {
             restClient
                     .get()
                     .uri("/accounts/{accountId}", accountId)
-                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .header(
+                            HttpHeaders.AUTHORIZATION,
+                            bearerToken)
                     .retrieve()
                     .toBodilessEntity();
 
@@ -46,6 +50,14 @@ public class AccountServiceClientImpl
                     .equals(HttpStatus.NOT_FOUND)) {
 
                 return false;
+            }
+
+            if (exception.getStatusCode()
+                    .equals(HttpStatus.FORBIDDEN)) {
+
+                throw new AccountAccessDeniedException(
+                        "Account does not belong to authenticated customer",
+                        exception);
             }
 
             throw exception;

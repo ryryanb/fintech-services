@@ -57,6 +57,10 @@ public class FinancialTransactionServiceImpl
                         throw new AccountNotFoundException(accountId);
                 }
 
+                transactionAuthorizationService.authorizeAccountAccess(
+                                accountId,
+                                authentication);
+
                 FinancialTransaction transaction = FinancialTransaction.builder()
                                 .accountId(accountId)
                                 .type(request.type())
