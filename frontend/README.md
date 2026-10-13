@@ -52,3 +52,26 @@ email is shown as a user-friendly error; network and server errors can be retrie
 For deployment, configure the hosting reverse proxy to route `/api/*` to the
 Auth Service and strip the `/api` prefix, or adjust the frontend API URL and
 deployment configuration accordingly.
+
+
+## FE-005: Display Login Form
+
+Selecting **Sign in** on the registration screen opens a dedicated login form.
+The form includes required email and password inputs, appropriate autocomplete
+hints, a show/hide password control, a remember-me checkbox, and a password
+recovery link placeholder. **Create account** returns to the registration form.
+
+This story implements the login form UI only. Submitting the form displays an
+informational message; it does not authenticate credentials or create a session.
+Authentication and password recovery are separate follow-up stories.
+
+### Verify FE-005
+
+1. Run `npm install` and `npm run dev` from `frontend/`.
+2. Confirm the registration screen appears at `http://localhost:5173`.
+3. Select **Sign in** and verify the login form is displayed.
+4. Verify email and password are required, the password visibility control works,
+   and the **Create account** link returns to registration.
+5. Submit populated fields and confirm the UI explains that authentication is not
+   implemented yet.
+6. Run `npm run typecheck` and `npm run build`.

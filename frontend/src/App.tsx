@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
+import LoginForm from './LoginForm';
 
 type RegistrationValues = {
   firstName: string;
@@ -74,6 +75,7 @@ function LockIcon() {
 }
 
 function App() {
+  const [showLogin, setShowLogin] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [values, setValues] = useState<RegistrationValues>(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -82,6 +84,10 @@ function App() {
   const [notice, setNotice] = useState('');
   const [noticeIsError, setNoticeIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  if (showLogin) {
+    return <LoginForm onCreateAccount={() => setShowLogin(false)} />;
+  }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const field = event.currentTarget.name as FieldName;
@@ -178,7 +184,7 @@ function App() {
           <span>fintech<span className="brand-period">.</span></span>
         </a>
         <div className="topbar-prompt">
-          Already have an account? <a href="#sign-in" onClick={(event) => { event.preventDefault(); setNotice('Sign-in will be available in a follow-up step.'); }}>Sign in</a>
+          Already have an account? <a href="#sign-in" onClick={(event) => { event.preventDefault(); setShowLogin(true); }}>Sign in</a>
         </div>
       </header>
 
