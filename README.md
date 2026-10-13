@@ -414,7 +414,7 @@ Planned security improvements include:
 
 # 🚧 Planned Services
 
-The following capabilities are **planned and are not currently represented as completed services in the repository**.
+The following capabilities are planned or still under development. A service module may exist before its full business functionality is complete.
 
 ## Transaction Service
 
@@ -523,7 +523,7 @@ These capabilities remain **planned** and are not currently part of the implemen
 
 **Planned**
 
-* [ ] Transaction Service
+* [x] Transaction Service module
 * [ ] Transaction lifecycle
 * [ ] Transaction history
 * [ ] Transaction categorization
