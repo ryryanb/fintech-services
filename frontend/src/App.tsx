@@ -1,4 +1,57 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+
+type RegistrationValues = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+};
+
+type FieldName = keyof RegistrationValues;
+type FieldErrors = Partial<Record<FieldName, string>>;
+
+const initialValues: RegistrationValues = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+};
+
+const fieldNames: FieldName[] = ['firstName', 'lastName', 'email', 'password'];
+
+function validateField(field: FieldName, rawValue: string): string {
+  const value = field === 'password' ? rawValue : rawValue.trim();
+
+  switch (field) {
+    case 'firstName':
+      if (!value) return 'Enter your first name.';
+      if (value.length > 100) return 'First name must be 100 characters or fewer.';
+      return '';
+    case 'lastName':
+      if (!value) return 'Enter your last name.';
+      if (value.length > 100) return 'Last name must be 100 characters or fewer.';
+      return '';
+    case 'email':
+      if (!value) return 'Enter your email address.';
+      if (value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return 'Enter a valid email address.';
+      }
+      return '';
+    case 'password':
+      if (!value) return 'Enter a password.';
+      if (value.length < 8) return 'Password must be at least 8 characters.';
+      if (value.length > 100) return 'Password must be 100 characters or fewer.';
+      return '';
+  }
+}
+
+function validate(values: RegistrationValues): FieldErrors {
+  return fieldNames.reduce<FieldErrors>((errors, field) => {
+    const error = validateField(field, values[field]);
+    if (error) errors[field] = error;
+    return errors;
+  }, {});
+}
 
 function BrandMark() {
   return (
@@ -22,11 +75,55 @@ function LockIcon() {
 
 function App() {
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [values, setValues] = useState<RegistrationValues>(initialValues);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [notice, setNotice] = useState('');
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const field = event.currentTarget.name as FieldName;
+    const value = event.currentTarget.value;
+    const nextValues = { ...values, [field]: value };
+    setValues(nextValues);
+    setNotice('');
+
+    if (touched[field] || attemptedSubmit) {
+      setErrors((current) => ({ ...current, [field]: validateField(field, value) }));
+    }
+  }
+
+  function handleBlur(event: ChangeEvent<HTMLInputElement>) {
+    const field = event.currentTarget.name as FieldName;
+    setTouched((current) => ({ ...current, [field]: true }));
+    setErrors((current) => ({
+      ...current,
+      [field]: validateField(field, event.currentTarget.value),
+    }));
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice('Your registration form is ready. Account creation will be connected in a follow-up step.');
+    setAttemptedSubmit(true);
+    setTouched({ firstName: true, lastName: true, email: true, password: true });
+
+    const nextErrors = validate(values);
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setNotice('Please correct the highlighted fields before continuing.');
+      const firstInvalidField = fieldNames.find((field) => nextErrors[field]);
+      if (firstInvalidField) {
+        document.getElementById(firstInvalidField)?.focus();
+      }
+      return;
+    }
+
+    setNotice('All fields look valid. Account creation will be connected in a follow-up step.');
+  }
+
+  function fieldError(field: FieldName) {
+    return (touched[field] || attemptedSubmit) ? errors[field] : undefined;
   }
 
   return (
@@ -82,15 +179,17 @@ function App() {
               <p>Enter your details below to get started.</p>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="name-row">
                 <div className="field">
                   <label htmlFor="firstName">First name</label>
-                  <input id="firstName" name="firstName" type="text" autoComplete="given-name" placeholder="e.g. Alex" maxLength={100} required />
+                  <input id="firstName" name="firstName" type="text" autoComplete="given-name" placeholder="e.g. Alex" maxLength={100} required value={values.firstName} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('firstName'))} aria-describedby={fieldError('firstName') ? 'firstName-error' : undefined} />
+                  {fieldError('firstName') && <p className="field-error" id="firstName-error">{fieldError('firstName')}</p>}
                 </div>
                 <div className="field">
                   <label htmlFor="lastName">Last name</label>
-                  <input id="lastName" name="lastName" type="text" autoComplete="family-name" placeholder="e.g. Morgan" maxLength={100} required />
+                  <input id="lastName" name="lastName" type="text" autoComplete="family-name" placeholder="e.g. Morgan" maxLength={100} required value={values.lastName} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('lastName'))} aria-describedby={fieldError('lastName') ? 'lastName-error' : undefined} />
+                  {fieldError('lastName') && <p className="field-error" id="lastName-error">{fieldError('lastName')}</p>}
                 </div>
               </div>
 
@@ -98,8 +197,9 @@ function App() {
                 <label htmlFor="email">Email address</label>
                 <div className="input-wrap">
                   <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={254} required />
+                  <input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={254} required value={values.email} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('email'))} aria-describedby={fieldError('email') ? 'email-error' : undefined} />
                 </div>
+                {fieldError('email') && <p className="field-error" id="email-error">{fieldError('email')}</p>}
               </div>
 
               <div className="field">
@@ -109,7 +209,7 @@ function App() {
                 </div>
                 <div className="input-wrap">
                   <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3.5" y="8.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 8.5V6a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                  <input id="password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="new-password" placeholder="Create a password" minLength={8} maxLength={100} required />
+                  <input id="password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="new-password" placeholder="Create a password" minLength={8} maxLength={100} required value={values.password} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('password'))} aria-describedby={fieldError('password') ? 'password-error' : undefined} />
                   <button className="password-toggle" type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
                     {passwordVisible ? (
                       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5"/><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5"/><path d="m3 3 14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -118,10 +218,11 @@ function App() {
                     )}
                   </button>
                 </div>
+                {fieldError('password') && <p className="field-error" id="password-error">{fieldError('password')}</p>}
               </div>
 
-              <button className="submit-button" type="submit">Create account <span aria-hidden="true">→</span></button>
-              {notice && <p className="form-notice" role="status">{notice}</p>}
+              <button className="submit-button" type="submit">Validate and continue <span aria-hidden="true">→</span></button>
+              {notice && <p className={Object.keys(errors).some((field) => errors[field as FieldName]) ? 'form-notice form-notice-error' : 'form-notice'} role="status" aria-live="polite">{notice}</p>}
             </form>
 
             <div className="security-note"><LockIcon /><span>Your details are kept private and secure.</span></div>
