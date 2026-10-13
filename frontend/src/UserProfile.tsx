@@ -45,6 +45,7 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -119,7 +120,7 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
 
     void loadProfile();
     return () => controller.abort();
-  }, [accessToken]);
+  }, [accessToken, retryCount]);
 
   return (
     <main className="page-shell profile-page">
@@ -154,7 +155,7 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
             <div className="profile-error-mark" aria-hidden="true">!</div>
             <h2>Profile unavailable</h2>
             <p className="profile-message" role="alert">{error}</p>
-            <button className="submit-button" type="button" onClick={() => window.location.reload()}>Try again</button>
+            <button className="submit-button" type="button" onClick={() => setRetryCount((count) => count + 1)}>Try again</button>
           </div>
         )}
 
