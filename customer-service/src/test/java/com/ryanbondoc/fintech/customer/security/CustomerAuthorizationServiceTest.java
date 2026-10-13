@@ -35,10 +35,12 @@ class CustomerAuthorizationServiceTest {
 
     @Test
     void rejectsAccessToAnotherCustomersProfile() {
-        var authentication = authentication(UUID.randomUUID(), UUID.randomUUID());
+        UUID requestedCustomerId = UUID.randomUUID();
+        UUID anotherCustomerId = UUID.randomUUID();
+        var authentication = authentication(UUID.randomUUID(), anotherCustomerId);
 
         assertThrows(ForbiddenException.class, () ->
-                authorizationService.requireCustomerAccess(authentication, UUID.randomUUID()));
+                authorizationService.requireCustomerAccess(authentication, requestedCustomerId));
     }
 
     @Test
@@ -52,10 +54,12 @@ class CustomerAuthorizationServiceTest {
 
     @Test
     void rejectsAccessToAnotherUsersCustomerProfile() {
-        var authentication = authentication(UUID.randomUUID(), UUID.randomUUID());
+        UUID requestedUserId = UUID.randomUUID();
+        UUID anotherUserId = UUID.randomUUID();
+        var authentication = authentication(anotherUserId, UUID.randomUUID());
 
         assertThrows(ForbiddenException.class, () ->
-                authorizationService.requireUserAccess(authentication, UUID.randomUUID()));
+                authorizationService.requireUserAccess(authentication, requestedUserId));
     }
 
     private JwtAuthenticationToken authentication(UUID userId, UUID customerId) {
