@@ -29,10 +29,105 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [notice, setNotice] = useState('');
+  const [noticeIsError, setNoticeIsError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [session, setSession] = useState<{
+    accessToken: string;
+    tokenType: string;
+    expiresIn: number;
+  } | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice('The login form is ready. Sign-in processing will be added in a follow-up story.');
+    setNotice('');
+    setNoticeIsError(false);
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const payload: unknown = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid email or password. Check your details and try again.');
+        }
+        if (response.status === 400) {
+          throw new Error('Enter a valid email address and password.');
+        }
+        throw new Error('We could not sign you in right now. Please try again.');
+      }
+
+      if (
+        typeof payload !== 'object' ||
+        payload === null ||
+        !('accessToken' in payload) ||
+        typeof payload.accessToken !== 'string' ||
+        !payload.accessToken ||
+        !('tokenType' in payload) ||
+        typeof payload.tokenType !== 'string' ||
+        !('expiresIn' in payload) ||
+        typeof payload.expiresIn !== 'number'
+      ) {
+        throw new Error('The sign-in service returned an unexpected response. Please try again.');
+      }
+
+      setSession({
+        accessToken: payload.accessToken,
+        tokenType: payload.tokenType,
+        expiresIn: payload.expiresIn,
+      });
+      setPassword('');
+      setNotice('');
+    } catch (error) {
+      setNoticeIsError(true);
+      setNotice(
+        error instanceof TypeError
+          ? 'Unable to reach the sign-in service. Check that the backend is running and try again.'
+          : error instanceof Error
+            ? error.message
+            : 'We could not sign you in right now. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (session) {
+    return (
+      <main className="page-shell login-page">
+        <header className="topbar">
+          <a className="brand" href="/" aria-label="Fintech home" onClick={(event) => { event.preventDefault(); onCreateAccount(); }}>
+            <BrandMark />
+            <span>fintech<span className="brand-period">.</span></span>
+          </a>
+          <div className="topbar-prompt">
+            <button className="text-link" type="button" onClick={() => setSession(null)}>Sign out</button>
+          </div>
+        </header>
+        <section className="authenticated-panel" aria-labelledby="signed-in-title">
+          <div className="form-card authenticated-card">
+            <span className="success-mark" aria-hidden="true">✓</span>
+            <h1 id="signed-in-title">You're signed in.</h1>
+            <p className="intro-copy">Your credentials were verified and your access token is ready for authenticated requests.</p>
+            <div className="session-detail">
+              <span>Authentication</span>
+              <strong>{session.tokenType}</strong>
+            </div>
+            <div className="session-detail">
+              <span>Token expires in</span>
+              <strong>{Math.floor(session.expiresIn / 60)} minutes</strong>
+            </div>
+            <p className="session-note">This demo keeps the access token in memory only. Refreshing the page ends this local session.</p>
+            <button className="submit-button" type="button" onClick={() => setSession(null)}>Sign out</button>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -77,7 +172,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
                     <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
                     <path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <input id="login-email" name="email" type="email" autoComplete="username" placeholder="you@example.com" required value={email} onChange={(event) => { setEmail(event.currentTarget.value); setNotice(''); }} />
+                  <input id="login-email" name="email" type="email" autoComplete="username" placeholder="you@example.com" required value={email} onChange={(event) => { setEmail(event.currentTarget.value); setNotice(''); setNoticeIsError(false); }} />
                 </div>
               </div>
 
@@ -91,7 +186,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
                     <rect x="3.5" y="8.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
                     <path d="M6 8.5V6a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <input id="login-password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" required value={password} onChange={(event) => { setPassword(event.currentTarget.value); setNotice(''); }} />
+                  <input id="login-password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" required value={password} onChange={(event) => { setPassword(event.currentTarget.value); setNotice(''); setNoticeIsError(false); }} />
                   <button className="password-toggle" type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
                     {passwordVisible ? (
                       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5"/><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5"/><path d="m3 3 14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -107,8 +202,8 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
                 <span>Remember me</span>
               </label>
 
-              <button className="submit-button" type="submit">Sign in <span aria-hidden="true">→</span></button>
-              {notice && <p className="form-notice" role="status" aria-live="polite">{notice}</p>}
+              <button className="submit-button" type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'} <span aria-hidden="true">→</span></button>
+              {notice && <p className={noticeIsError ? 'form-notice form-notice-error' : 'form-notice'} role="status" aria-live="polite">{notice}</p>}
             </form>
 
             <div className="security-note"><LockIcon /><span>Your details are kept private and secure.</span></div>
