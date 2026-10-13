@@ -93,14 +93,7 @@ function App() {
     }
   }
 
-  function handleBlur(event: FocusEvent<HTMLInputElement>) {
-    const field = event.currentTarget.name as FieldName;
-    setTouched((current) => ({ ...current, [field]: true }));
-    setErrors((current) => ({
-      ...current,
-      [field]: validateField(field, event.currentTarget.value),
-    }));
-  }
+  function handleBlur(event: FocusEvent<HTMLInputElement>) { const field = event.currentTarget.name as FieldName; const value = event.currentTarget.value; setTouched((current) => ({ ...current, [field]: true })); setErrors((current) => ({ ...current, [field]: validateField(field, value), })); }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

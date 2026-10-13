@@ -50,3 +50,6 @@ build/
 auth-service/keys/jwt-private.pem
 
 api-tests/target/
+
+# Node.js dependencies
+frontend/node_modules/
