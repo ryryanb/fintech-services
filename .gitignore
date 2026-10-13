@@ -53,3 +53,7 @@ api-tests/target/
 
 # Node.js dependencies
 frontend/node_modules/
+
+# IDE metadata
+.idea/
+.settings/
