@@ -3,9 +3,9 @@ spring:
     name: auth-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5435/auth_db
-    username: saas_user
-    password: saas_password
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -26,7 +26,7 @@ security:
 
 services:
   customer-service:
-    url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+    url: ${CUSTOMER_SERVICE_URL}
 
 management:
   endpoints:

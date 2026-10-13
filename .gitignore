@@ -48,3 +48,5 @@ build/
 .vscode/
 
 auth-service/keys/jwt-private.pem
+
+api-tests/target/
