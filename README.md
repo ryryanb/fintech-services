@@ -6,6 +6,18 @@ The project focuses on building a realistic financial-services backend with clea
 
 > **Project status:** Active development
 
+## Registration
+
+![Registration page](docs/images/register.png)
+
+## Login
+
+![Login page](docs/images/login.png)
+
+## User Profile
+
+![User profile page](docs/images/profile.png)
+
 
 # 🚀 Local Development: Build and Run the Platform
 
