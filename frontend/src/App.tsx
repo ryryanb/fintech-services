@@ -80,6 +80,8 @@ function App() {
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [notice, setNotice] = useState('');
+  const [noticeIsError, setNoticeIsError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const field = event.currentTarget.name as FieldName;
@@ -87,6 +89,7 @@ function App() {
     const nextValues = { ...values, [field]: value };
     setValues(nextValues);
     setNotice('');
+    setNoticeIsError(false);
 
     if (touched[field] || attemptedSubmit) {
       setErrors((current) => ({ ...current, [field]: validateField(field, value) }));
@@ -95,7 +98,7 @@ function App() {
 
   function handleBlur(event: FocusEvent<HTMLInputElement>) { const field = event.currentTarget.name as FieldName; const value = event.currentTarget.value; setTouched((current) => ({ ...current, [field]: true })); setErrors((current) => ({ ...current, [field]: validateField(field, value), })); }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttemptedSubmit(true);
     setTouched({ firstName: true, lastName: true, email: true, password: true });
@@ -104,6 +107,7 @@ function App() {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      setNoticeIsError(true);
       setNotice('Please correct the highlighted fields before continuing.');
       const firstInvalidField = fieldNames.find((field) => nextErrors[field]);
       if (firstInvalidField) {
@@ -112,7 +116,54 @@ function App() {
       return;
     }
 
-    setNotice('All fields look valid. Account creation will be connected in a follow-up step.');
+    setNoticeIsError(false);
+    setSubmitting(true);
+    setNotice('Creating your account...');
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: values.email.trim(),
+          password: values.password,
+          firstName: values.firstName.trim(),
+          lastName: values.lastName.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('An account with this email already exists. Sign in or use another email address.');
+        }
+
+        const payload: unknown = await response.json().catch(() => null);
+        const serverMessage =
+          typeof payload === 'object' &&
+          payload !== null &&
+          'message' in payload &&
+          typeof payload.message === 'string'
+            ? payload.message
+            : undefined;
+
+        throw new Error(serverMessage ?? 'We could not create your account. Please try again.');
+      }
+
+      setValues((current) => ({ ...current, password: '' }));
+      setNoticeIsError(false);
+      setNotice('Your account has been created successfully. You can now sign in.');
+    } catch (error) {
+      setNoticeIsError(true);
+      setNotice(
+        error instanceof TypeError
+          ? 'Unable to reach the registration service. Check that the backend services are running and try again.'
+          : error instanceof Error
+            ? error.message
+            : 'We could not create your account. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function fieldError(field: FieldName) {
@@ -214,8 +265,8 @@ function App() {
                 {fieldError('password') && <p className="field-error" id="password-error">{fieldError('password')}</p>}
               </div>
 
-              <button className="submit-button" type="submit">Validate and continue <span aria-hidden="true">→</span></button>
-              {notice && <p className={Object.keys(errors).some((field) => errors[field as FieldName]) ? 'form-notice form-notice-error' : 'form-notice'} role="status" aria-live="polite">{notice}</p>}
+              <button className="submit-button" type="submit" disabled={submitting}>{submitting ? 'Creating account…' : 'Create account'} <span aria-hidden="true">→</span></button>
+              {notice && <p className={noticeIsError ? 'form-notice form-notice-error' : 'form-notice'} role="status" aria-live="polite">{notice}</p>}
             </form>
 
             <div className="security-note"><LockIcon /><span>Your details are kept private and secure.</span></div>

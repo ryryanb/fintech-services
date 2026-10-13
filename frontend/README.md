@@ -35,3 +35,20 @@ This story is limited to displaying the form. The submit interaction gives a cle
 ## Backend integration
 
 The Auth Service registration endpoint is `POST /auth/register`. Configure a development proxy or an environment-based API URL in a follow-up integration story; this initial screen intentionally has no backend dependency.
+
+
+## FE-003: Register Account
+
+The registration form submits the validated fields to the Auth Service using
+`POST /auth/register`. During local development, Vite proxies requests from
+`/api/*` to `http://localhost:8086/*`, so the frontend calls
+`/api/auth/register` without requiring browser CORS configuration.
+
+Run the frontend with `npm run dev` and ensure the Auth Service and Customer
+Service, including their PostgreSQL databases, are running. Registration creates
+both the authentication user and the associated customer record. A duplicate
+email is shown as a user-friendly error; network and server errors can be retried.
+
+For deployment, configure the hosting reverse proxy to route `/api/*` to the
+Auth Service and strip the `/api` prefix, or adjust the frontend API URL and
+deployment configuration accordingly.
