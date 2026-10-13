@@ -49,13 +49,7 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
 
   useEffect(() => {
     const controller = new AbortController();
-    const userId = getUserIdFromToken(accessToken);
-
-    if (!userId) {
-      setError('We could not identify your account. Please sign in again.');
-      setLoading(false);
-      return () => controller.abort();
-    }
+    const extractedUserId = getUserIdFromToken(accessToken); if (!extractedUserId) { setError('We could not identify your account. Please sign in again.'); setLoading(false); return () => controller.abort(); } const userId: string = extractedUserId;
 
     async function loadProfile() {
       setLoading(true);
