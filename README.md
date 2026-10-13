@@ -6,6 +6,205 @@ The project focuses on building a realistic financial-services backend with clea
 
 > **Project status:** Active development
 
+
+# 🚀 Local Development: Build and Run the Platform
+
+This section is the starting point for anyone cloning the repository. The commands below assume you are running them from the **repository root**.
+
+## Prerequisites
+
+For the Docker-based setup, install:
+
+- [Git](https://git-scm.com/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine with the Compose plugin)
+
+Start Docker and confirm it is available:
+
+```bash
+docker --version
+docker compose version
+docker info
+```
+
+For running services directly on your machine instead of in Docker, install **JDK 21**. The frontend is maintained separately; see [Starting the frontend](#starting-the-frontend).
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/ryryanb/fintech-services.git
+cd fintech-services
+```
+
+If you already have a checkout, change into the repository root before running the following commands.
+
+## 2. Check the local configuration
+
+The root `docker-compose.yml` defines the PostgreSQL databases and backend services. Before starting, validate the Compose file:
+
+```bash
+docker compose config
+```
+
+The Auth Service is configured to read its RSA private key from `auth-service/keys/jwt-private.pem`, mounted read-only into the container. Make sure that file exists locally and contains the key expected by your local Auth Service configuration. **Do not commit or publish private keys, passwords, or production secrets.**
+
+The Compose file publishes these ports on your machine:
+
+| Component | Local address / port |
+| --- | --- |
+| Auth Service | `http://localhost:8086` |
+| Customer Service | `http://localhost:8082` |
+| Account Service | `http://localhost:8083` |
+| Transaction Service | `http://localhost:8087` |
+| Auth PostgreSQL | `localhost:5436` |
+| Customer PostgreSQL | `localhost:5433` |
+| Account PostgreSQL | `localhost:5434` |
+| Transaction PostgreSQL | `localhost:5437` |
+
+The database credentials in the Compose file are **development-only defaults**. Do not reuse them in a production environment.
+
+## 3. Build and start the backend with Docker Compose
+
+From the repository root, run:
+
+```bash
+docker compose up --build -d
+```
+
+This builds the service images and starts the configured containers in the background. The first build may take several minutes while Docker downloads base images and Maven dependencies.
+
+Check container status:
+
+```bash
+docker compose ps
+```
+
+Follow logs for the full stack:
+
+```bash
+docker compose logs -f
+```
+
+Or follow one service at a time:
+
+```bash
+docker compose logs -f auth-service
+docker compose logs -f customer-service
+docker compose logs -f account-service
+docker compose logs -f transaction-service
+```
+
+Press `Ctrl+C` to stop following logs; this does **not** stop the containers.
+
+Allow the services time to initialize their databases and apply migrations. Confirm the service logs show successful startup before testing API requests. The Auth Service exposes its health endpoint at:
+
+```bash
+curl -i http://localhost:8086/actuator/health
+```
+
+The Compose network allows containers to reach each other by Compose service name (for example, `auth-service` connects to `customer-service:8082`). From your host machine, use `localhost` and the published ports shown above.
+
+## 4. Rebuild or restart one service
+
+After changing code in a service, rebuild and recreate just that service:
+
+```bash
+docker compose up -d --build --no-deps customer-service
+```
+
+Replace `customer-service` with `auth-service`, `account-service`, or `transaction-service` as needed. Use `--no-deps` when you deliberately want to leave dependencies untouched; make sure the required database and other services are already running.
+
+To inspect the result:
+
+```bash
+docker compose ps customer-service
+docker compose logs --tail=100 -f customer-service
+```
+
+## 5. Stop the platform
+
+Stop and remove the containers and Compose network while retaining named database volumes:
+
+```bash
+docker compose down
+```
+
+To start the platform again without rebuilding:
+
+```bash
+docker compose up -d
+```
+
+**Database warning:** Do not use `docker compose down -v` unless you intentionally want to delete the Compose-managed database volumes and their data.
+
+## Troubleshooting Docker
+
+### A container name is already in use
+
+The Compose file assigns fixed container names. If Docker reports that a name such as `/fintech-customer-db` is already in use, inspect the existing container before removing anything:
+
+```bash
+docker ps -a --filter "name=fintech-customer-db"
+docker inspect fintech-customer-db \
+  --format 'Status={{.State.Status}} Project={{index .Config.Labels "com.docker.compose.project"}}'
+docker compose ps -a
+docker compose ls
+```
+
+The existing container may belong to another checkout or Compose project. Do not remove a database container or volume until you have confirmed it is no longer needed. If it is the database you intend to use, verify that it is connected to the expected network and configured with the expected database.
+
+### A service fails to start
+
+Inspect its logs and validate the Compose configuration:
+
+```bash
+docker compose logs --tail=200 <service-name>
+docker compose config
+```
+
+Check for missing local configuration files, port conflicts, database startup/migration errors, and unavailable dependencies before rebuilding.
+
+## Running a backend service directly with Maven
+
+For service-level development, you can run an individual Spring Boot service on your machine. Install JDK 21 first, start the required PostgreSQL database, and use that service's configured local datasource settings.
+
+For example:
+
+```bash
+cd customer-service
+./mvnw test
+./mvnw spring-boot:run
+```
+
+The Customer Service listens on `http://localhost:8082`. Review the service's `application.yml` and its README before running outside Docker; database hostnames used inside Docker (such as `customer-db`) are not the same as host-side connection addresses (usually `localhost`).
+
+## Starting the frontend
+
+The React frontend is **not currently part of this repository's Docker Compose stack**. The existing frontend is maintained in the separate [`fintech_core` repository](https://github.com/ryryanb/fintech_core), under `transaction-frontend/`.
+
+Clone that repository (or update your existing checkout), then start the development server:
+
+```bash
+git clone https://github.com/ryryanb/fintech_core.git
+cd fintech_core/transaction-frontend
+npm install
+npm start
+```
+
+You will need [Node.js and npm](https://nodejs.org/) installed. Once the React development server is ready, open [http://localhost:3000](http://localhost:3000). Keep the terminal running while developing; press `Ctrl+C` to stop the frontend.
+
+To create a production build or run the frontend tests:
+
+```bash
+npm run build
+npm test
+```
+
+**Integration note:** this frontend originated in the earlier FinTech Core implementation and is being retained separately while the backend architecture evolves. Starting it locally does not mean that all its existing API calls are already integrated with the newer services in this repository. Frontend/backend compatibility and API configuration may need additional work.
+
+## What is and is not started by Docker Compose
+
+The root `docker-compose.yml` starts the configured backend services and PostgreSQL databases. It does **not** start the React frontend. Start the frontend separately using the instructions above.
+
 ---
 
 ## 🎯 Project Goals
@@ -32,23 +231,19 @@ Future development will extend the platform with transaction processing, payment
 
 # 🏗 Current Architecture
 
-The current repository contains three Spring Boot services:
+The current repository contains four Spring Boot service modules:
 
 ```text
                          FinTech Services
                                 │
-             ┌──────────────────┼──────────────────┐
-             │                  │                  │
-             ▼                  ▼                  ▼
-      Auth Service       Customer Service     Account Service
-      Spring Boot        Spring Boot          Spring Boot
-             │                  │                  │
-             ▼                  ▼                  ▼
-        Auth Data        Customer Data        Account Data
-             │                  │                  │
-             └──────────────────┼──────────────────┘
-                                │
-                           PostgreSQL
+       ┌────────────┬──────────────┬──────────────┐
+       ▼            ▼              ▼              ▼
+  Auth Service Customer Service Account Service Transaction Service
+       │            │              │              │
+       ▼            ▼              ▼              ▼
+   Auth Data   Customer Data   Account Data   Transaction Data
+       └────────────┴──────────────┴──────────────┘
+                       PostgreSQL
 ```
 
 Each service owns its own application logic and persistence model.
@@ -219,13 +414,13 @@ Planned security improvements include:
 
 # 🚧 Planned Services
 
-The following capabilities are **planned and are not currently represented as completed services in the repository**.
+The following capabilities are planned or still under development. A service module may exist before its full business functionality is complete.
 
 ## Transaction Service
 
-A dedicated transaction service will own financial transaction processing.
+`transaction-service` is present as a Spring Boot module and is included in the root Maven build and Docker Compose configuration. It is intended to own transaction-related functionality separately from payment-provider integration. The exact implemented API scope should be verified against the service source and tests.
 
-Planned responsibilities include:
+Further development may include:
 
 * Transaction creation
 * Transaction retrieval
@@ -328,7 +523,7 @@ These capabilities remain **planned** and are not currently part of the implemen
 
 **Planned**
 
-* [ ] Transaction Service
+* [x] Transaction Service module
 * [ ] Transaction lifecycle
 * [ ] Transaction history
 * [ ] Transaction categorization
@@ -398,6 +593,11 @@ fintech-services/
 │   ├── README.md
 │   ├── Dockerfile
 │   ├── compose.yaml
+│   └── pom.xml
+│
+├── transaction-service/
+│   ├── src/
+│   ├── Dockerfile
 │   └── pom.xml
 │
 ├── docs/
