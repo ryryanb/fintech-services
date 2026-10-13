@@ -7,6 +7,11 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
+      '/api/customers': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       '/api': {
         target: 'http://localhost:8086',
         changeOrigin: true,

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import UserProfile from './UserProfile';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -97,38 +98,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     }
   }
 
-  if (session) {
-    return (
-      <main className="page-shell login-page">
-        <header className="topbar">
-          <a className="brand" href="/" aria-label="Fintech home" onClick={(event) => { event.preventDefault(); onCreateAccount(); }}>
-            <BrandMark />
-            <span>fintech<span className="brand-period">.</span></span>
-          </a>
-          <div className="topbar-prompt">
-            <button className="text-link" type="button" onClick={() => setSession(null)}>Sign out</button>
-          </div>
-        </header>
-        <section className="authenticated-panel" aria-labelledby="signed-in-title">
-          <div className="form-card authenticated-card">
-            <span className="success-mark" aria-hidden="true">✓</span>
-            <h1 id="signed-in-title">You're signed in.</h1>
-            <p className="intro-copy">Your credentials were verified and your access token is ready for authenticated requests.</p>
-            <div className="session-detail">
-              <span>Authentication</span>
-              <strong>{session.tokenType}</strong>
-            </div>
-            <div className="session-detail">
-              <span>Token expires in</span>
-              <strong>{Math.floor(session.expiresIn / 60)} minutes</strong>
-            </div>
-            <p className="session-note">This demo keeps the access token in memory only. Refreshing the page ends this local session.</p>
-            <button className="submit-button" type="button" onClick={() => setSession(null)}>Sign out</button>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  if (session) return <UserProfile accessToken={session.accessToken} onSignOut={() => setSession(null)} />;
 
   return (
     <main className="page-shell login-page">
