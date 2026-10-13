@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import UserProfile from './UserProfile';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -98,6 +99,8 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   }
 
   if (session) {
+    return <UserProfile accessToken={session.accessToken} onSignOut={() => setSession(null)} />;
+
     return (
       <main className="page-shell login-page">
         <header className="topbar">
