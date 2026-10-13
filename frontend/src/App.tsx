@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
 
 type RegistrationValues = {
   firstName: string;
@@ -93,7 +93,7 @@ function App() {
     }
   }
 
-  function handleBlur(event: ChangeEvent<HTMLInputElement>) {
+  function handleBlur(event: FocusEvent<HTMLInputElement>) {
     const field = event.currentTarget.name as FieldName;
     setTouched((current) => ({ ...current, [field]: true }));
     setErrors((current) => ({
