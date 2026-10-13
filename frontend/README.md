@@ -103,3 +103,40 @@ a persistent session.
    invalid-credentials message.
 6. Stop the Auth Service and retry to verify the connection-error message.
 7. Run `npm run typecheck` and `npm run build`.
+
+
+## FE-013: Display User Profile
+
+After a successful login, the frontend loads the signed-in user's customer
+profile from `GET /customers/by-user/{userId}`. It reads the JWT subject
+(`sub`) to identify the user and sends the token in the Authorization header.
+The Vite development proxy routes `/api/customers/*` to Customer Service on
+port 8082; authentication requests continue to route to Auth Service on port
+8086.
+
+The profile displays the user's name, email, status, and customer number when
+available. It includes loading, unavailable/error, and retry states, and a
+sign-out action. The access token remains in memory and is not persisted by the
+frontend.
+
+**Security note:** The frontend sends the bearer token, but the existing
+Customer Service `GET /customers/by-user/{userId}` endpoint must enforce JWT
+authentication and ensure the requested user ID matches the authenticated
+token subject (or use the subject directly). A frontend-supplied user ID is
+not an authorization boundary. Do not deploy profile data access until this
+server-side authorization is enforced.
+
+### Verify FE-013
+
+1. Start the Auth Service and Customer Service with their PostgreSQL databases.
+2. From `frontend/`, run `npm ci`, `npm run typecheck`, `npm run build`,
+   then `npm run dev`.
+3. Sign in with a registered account and verify the profile shows that user's
+   name, email, status, and customer number when returned by the API.
+4. Confirm the browser Network panel shows a bearer Authorization header on
+   `GET /api/customers/by-user/{userId}`; do not copy or share the token.
+5. Stop Customer Service and verify the page shows a friendly error and retry
+   option. Restart it and verify the retry works.
+6. Verify sign out returns to the login screen.
+7. Before deployment, confirm Customer Service rejects missing/invalid tokens
+   and prevents one user's token from reading another user's profile.
