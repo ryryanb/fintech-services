@@ -75,3 +75,31 @@ Authentication and password recovery are separate follow-up stories.
 5. Submit populated fields and confirm the UI explains that authentication is not
    implemented yet.
 6. Run `npm run typecheck` and `npm run build`.
+
+
+## FE-006: Authenticate User
+
+The login form sends credentials to `POST /api/auth/login`, which the local
+Vite proxy forwards to the Auth Service's `POST /auth/login` endpoint. On
+success, the UI validates the response shape, clears the password field, and
+shows a signed-in state with token type and expiry. Invalid credentials and
+service errors are presented without exposing backend internals.
+
+The access token is held in React memory only; it is not written to
+localStorage, sessionStorage, cookies, or logs. Refreshing the page clears this
+client-side session. The current story demonstrates authentication and token
+issuance; it does not yet implement protected account pages, token refresh, or
+a persistent session.
+
+### Verify FE-006
+
+1. Start the Auth Service and its PostgreSQL database, then run the frontend
+   with `npm run dev` from `frontend/`.
+2. Open `http://localhost:5173` and select **Sign in**.
+3. Enter the email and password for a registered, active account. Verify a
+   successful login shows the signed-in state and token expiry.
+4. Select **Sign out** and verify the login form returns.
+5. Try an incorrect password and an unknown email; both should show the same
+   invalid-credentials message.
+6. Stop the Auth Service and retry to verify the connection-error message.
+7. Run `npm run typecheck` and `npm run build`.
