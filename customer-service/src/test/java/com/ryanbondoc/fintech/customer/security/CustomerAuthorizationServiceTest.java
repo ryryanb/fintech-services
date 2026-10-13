@@ -4,14 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import com.ryanbondoc.fintech.customer.exception.ForbiddenException;
 import com.ryanbondoc.fintech.customer.repository.CustomerRepository;
 
 class CustomerAuthorizationServiceTest {
@@ -36,7 +37,7 @@ class CustomerAuthorizationServiceTest {
     void rejectsAccessToAnotherCustomersProfile() {
         var authentication = authentication(UUID.randomUUID(), UUID.randomUUID());
 
-        assertThrows(AccessDeniedException.class, () ->
+        assertThrows(ForbiddenException.class, () ->
                 authorizationService.requireCustomerAccess(authentication, UUID.randomUUID()));
     }
 
@@ -53,7 +54,7 @@ class CustomerAuthorizationServiceTest {
     void rejectsAccessToAnotherUsersCustomerProfile() {
         var authentication = authentication(UUID.randomUUID(), UUID.randomUUID());
 
-        assertThrows(AccessDeniedException.class, () ->
+        assertThrows(ForbiddenException.class, () ->
                 authorizationService.requireUserAccess(authentication, UUID.randomUUID()));
     }
 
@@ -62,7 +63,7 @@ class CustomerAuthorizationServiceTest {
                 .header("alg", "RS256")
                 .subject(userId.toString())
                 .claim("customerId", customerId.toString())
-                .claim("roles", java.util.List.of("USER"))
+                .claim("roles", List.of("USER"))
                 .build();
 
         return new JwtAuthenticationToken(jwt);
