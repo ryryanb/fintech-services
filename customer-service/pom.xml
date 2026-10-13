@@ -11,25 +11,11 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-
 	<groupId>com.ryanbondoc.fintech</groupId>
 	<artifactId>customer-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Customer Service</name>
 	<description>Customer management service for FinTech Services</description>
-	<url />
-	<licenses>
-		<license />
-	</licenses>
-	<developers>
-		<developer />
-	</developers>
-	<scm>
-		<connection />
-		<developerConnection />
-		<tag />
-		<url />
-	</scm>
 	<properties>
 		<java.version>21</java.version>
 	</properties>
@@ -54,7 +40,14 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -97,7 +90,6 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -153,5 +145,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
