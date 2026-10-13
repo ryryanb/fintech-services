@@ -392,12 +392,28 @@ Planned functionality may include:
 * Audit logging
 * Customer search
 * Pagination
-* API authentication and authorization
+* Fine-grained administrative permissions and service-to-service authentication
 * Event publishing when customers are created or updated
 * Integration with the Auth Service
 * Integration with financial-account services
 
 These features will be implemented as their corresponding user stories are developed.
+
+
+## AUTH-006 — Authorization
+
+Customer Service verifies signed JWT access tokens using the same RSA public key as Account Service and Transaction Service. Protected endpoints require a valid bearer token.
+
+- A user can retrieve their profile through `GET /customers/by-user/{userId}` only when `userId` matches the JWT subject (`sub`).
+- Profile, update, address-read, and address-create operations require the requested customer UUID to match the JWT `customerId` claim.
+- Customer deletion resolves the business customer number and verifies ownership before deletion.
+- Listing and searching all customers require the `ROLE_ADMIN` authority; normal `USER` tokens cannot enumerate customer records.
+- Health and OpenAPI documentation endpoints remain public.
+- `POST /customers` remains unauthenticated because Auth Service creates the customer during registration before an access token exists.
+
+**Deployment security note:** the registration endpoint must be reachable only by trusted internal callers (for example, via private service networking/API-gateway rules). Because it is intentionally unauthenticated, exposing Customer Service directly to the public internet would allow untrusted callers to attempt customer creation. A future service-to-service credential or mTLS mechanism should replace this network-only trust boundary.
+
+Authorization unit tests cover allowed access to a user's own profile and denial of access to another user's/customer's profile.
 
 ## Related Services
 
