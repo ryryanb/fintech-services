@@ -33,6 +33,7 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
+import com.ryanbondoc.fintech.transaction.exception.AccountAccessDeniedException;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
@@ -430,6 +431,40 @@ class FinancialTransactionServiceImplTest {
                                 .build();
 
                 return new JwtAuthenticationToken(jwt);
+        }
+
+        @Test
+        void shouldRejectTransactionWhenAccountBelongsToAnotherCustomer() {
+                UUID accountId = UUID.randomUUID();
+
+                JwtAuthenticationToken authentication = createAuthentication();
+
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Utility payment",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                null);
+
+                when(accountServiceClient.accountExists(
+                                eq(accountId),
+                                eq(bearerToken)))
+                                .thenThrow(new AccountAccessDeniedException(
+                                                "Account does not belong to authenticated customer"));
+
+                assertThatThrownBy(() -> transactionService.createTransaction(
+                                request,
+                                authentication))
+                                .isInstanceOf(AccountAccessDeniedException.class);
+
+                verify(transactionRepository, never())
+                                .save(any(FinancialTransaction.class));
         }
 
 }

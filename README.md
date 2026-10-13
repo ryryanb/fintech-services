@@ -458,11 +458,7 @@ The platform is developed incrementally, with architectural decisions evolving a
 
 ---
 
-# 🎓 Portfolio Purpose
-
-FinTech Services is a portfolio project demonstrating practical software-engineering skills in a realistic financial-services domain.
-
-The project emphasizes:
+# 🎓 Purpose
 
 * Java backend engineering
 * Spring Boot
@@ -478,8 +474,6 @@ The project emphasizes:
 * AI-assisted application design
 
 The goal is not to simulate a complete banking system. The goal is to demonstrate how a backend engineer designs, implements, tests, secures, and evolves a multi-service application around realistic business requirements.
-
----
 
 ## 📄 License
 

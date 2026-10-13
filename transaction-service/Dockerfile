@@ -24,6 +24,6 @@ WORKDIR /app
 
 COPY --from=build /app/transaction-service/target/*.jar app.jar
 
-EXPOSE 8084
+EXPOSE 8087
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
