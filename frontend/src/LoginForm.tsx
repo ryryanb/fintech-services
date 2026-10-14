@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { clearAccessToken, setAccessToken } from './authSession';
 import UserProfile from './UserProfile';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -33,17 +34,13 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   const [notice, setNotice] = useState('');
   const [noticeIsError, setNoticeIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [session, setSession] = useState<{
-    accessToken: string;
-    tokenType: string;
-    expiresIn: number;
-  } | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (!session && window.location.pathname === '/profile') {
+    if (!isAuthenticated && window.location.pathname === '/profile') {
       window.history.replaceState(null, '', '/login');
     }
-  }, [session]);
+  }, [isAuthenticated]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,11 +81,8 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
         throw new Error('The sign-in service returned an unexpected response. Please try again.');
       }
 
-      setSession({
-        accessToken: payload.accessToken,
-        tokenType: payload.tokenType,
-        expiresIn: payload.expiresIn,
-      });
+      setAccessToken(payload.accessToken);
+      setIsAuthenticated(true);
       window.history.pushState(null, '', '/profile');
       setPassword('');
       setNotice('');
@@ -106,13 +100,13 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     }
   }
 
-  if (session && window.location.pathname === '/profile') {
+  if (isAuthenticated && window.location.pathname === '/profile') {
     return (
-      <ProtectedRoute isAuthenticated={Boolean(session)}>
+      <ProtectedRoute isAuthenticated={isAuthenticated}>
         <UserProfile
-          accessToken={session.accessToken}
           onSignOut={() => {
-            setSession(null);
+            clearAccessToken();
+            setIsAuthenticated(false);
             window.history.replaceState(null, '', '/login');
           }}
         />
@@ -186,11 +180,6 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
                   </button>
                 </div>
               </div>
-
-              <label className="remember-row">
-                <input type="checkbox" name="rememberMe" />
-                <span>Remember me</span>
-              </label>
 
               <button className="submit-button" type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'} <span aria-hidden="true">→</span></button>
               {notice && <p className={noticeIsError ? 'form-notice form-notice-error' : 'form-notice'} role="status" aria-live="polite">{notice}</p>}
