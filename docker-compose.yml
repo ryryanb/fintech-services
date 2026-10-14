@@ -142,7 +142,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
       SPRING_DATASOURCE_USERNAME: ${CUSTOMER_DB_USERNAME:?Set CUSTOMER_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in .env}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
@@ -171,7 +170,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db
       SPRING_DATASOURCE_USERNAME: ${ACCOUNT_DB_USERNAME:?Set ACCOUNT_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${ACCOUNT_DB_PASSWORD:?Set ACCOUNT_DB_PASSWORD in .env}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
@@ -199,7 +197,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5432/transaction_db
       SPRING_DATASOURCE_USERNAME: ${TRANSACTION_DB_USERNAME:?Set TRANSACTION_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${TRANSACTION_DB_PASSWORD:?Set TRANSACTION_DB_PASSWORD in .env}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5432/transaction_db
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
       SERVICES_ACCOUNT_BASE_URL: http://account-service:8083
