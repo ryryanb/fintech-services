@@ -191,27 +191,80 @@ The Customer Service listens on `http://localhost:8082`. Review the service's `a
 
 ## Starting the frontend
 
-The React frontend is **not currently part of this repository's Docker Compose stack**. The existing frontend is maintained in the separate [`fintech_core` repository](https://github.com/ryryanb/fintech_core), under `transaction-frontend/`.
+The React frontend is located in the `frontend/` directory of this repository. It uses React, TypeScript, and Vite.
 
-Clone that repository (or update your existing checkout), then start the development server:
+### Prerequisites
+
+Install the following:
+
+* **Node.js 20.19+ or 22.12+**
+* **npm**, which is included with Node.js
+* Docker Engine with the Docker Compose plugin, if you also want to run the backend using Docker
+
+### 1. Install frontend dependencies
+
+From the repository root, run:
 
 ```bash
-git clone https://github.com/ryryanb/fintech_core.git
-cd fintech_core/transaction-frontend
-npm install
-npm start
+cd frontend
+npm ci
 ```
 
-You will need [Node.js and npm](https://nodejs.org/) installed. Once the React development server is ready, open [http://localhost:3000](http://localhost:3000). Keep the terminal running while developing; press `Ctrl+C` to stop the frontend.
+`npm ci` installs the dependencies specified in `package-lock.json`. Use `npm install` instead if you intentionally need to update the dependency lockfile.
 
-To create a production build or run the frontend tests:
+### 2. Start the frontend development server
+
+Run:
+
+```bash
+npm run dev
+```
+
+Vite starts the development server at:
+
+**http://localhost:5173**
+
+Open this URL in your browser. Keep the terminal running while using the application. Press `Ctrl+C` to stop the development server.
+
+
+The frontend can start without the backend, but registration, login, and profile features that make API requests require the relevant backend services and databases to be running.
+
+### 3. Run frontend checks
+
+From the `frontend/` directory, run the TypeScript checks:
+
+```bash
+npm run typecheck
+```
+
+Create a production build:
 
 ```bash
 npm run build
-npm test
 ```
 
-**Integration note:** this frontend originated in the earlier FinTech Core implementation and is being retained separately while the backend architecture evolves. Starting it locally does not mean that all its existing API calls are already integrated with the newer services in this repository. Frontend/backend compatibility and API configuration may need additional work.
+The production-ready static files are generated in `frontend/dist/`.
+
+To preview the production build locally, run:
+
+```bash
+npm run preview
+```
+
+Vite prints the local preview URL in the terminal. This preview server is intended for local verification, not production hosting.
+
+### Available npm scripts
+
+| Command             | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `npm run dev`       | Start the Vite development server            |
+| `npm run typecheck` | Check TypeScript types                       |
+| `npm run build`     | Type-check and build the production frontend |
+| `npm run preview`   | Preview the production build locally         |
+
+### Important deployment note
+
+The Vite proxy configuration is for local development only. For production deployment, serve the built frontend through a production web server or reverse proxy and configure `/api/auth/*` requests to reach the Auth Service and `/api/customers/*` requests to reach Customer Service. The production routing must preserve the expected backend paths and must not expose internal database ports publicly.
 
 ## What is and is not started by Docker Compose
 
