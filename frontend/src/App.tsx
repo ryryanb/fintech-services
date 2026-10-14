@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
 import LoginForm from './LoginForm';
 
 type RegistrationValues = {
@@ -75,7 +75,15 @@ function LockIcon() {
 }
 
 function App() {
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(() => ['/login', '/profile'].includes(window.location.pathname));
+
+  useEffect(() => {
+    function syncRoute() {
+      setShowLogin(['/login', '/profile'].includes(window.location.pathname));
+    }
+    window.addEventListener('popstate', syncRoute);
+    return () => window.removeEventListener('popstate', syncRoute);
+  }, []);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [values, setValues] = useState<RegistrationValues>(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -184,7 +192,7 @@ function App() {
           <span>fintech<span className="brand-period">.</span></span>
         </a>
         <div className="topbar-prompt">
-          Already have an account? <a href="#sign-in" onClick={(event) => { event.preventDefault(); setShowLogin(true); }}>Sign in</a>
+          Already have an account? <a href="/login" onClick={(event) => { event.preventDefault(); window.history.pushState(null, '', '/login'); setShowLogin(true); }}>Sign in</a>
         </div>
       </header>
 
