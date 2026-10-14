@@ -1,8 +1,8 @@
 package com.ryanbondoc.fintech.account.controller;
 
-import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,7 +55,7 @@ class FinancialAccountControllerTest {
                 "FinTech Bank",
                 AccountStatus.ACTIVE);
 
-        when(accountAuthorizationService.getAuthenticatedCustomerId(null)).thenReturn(customerId);
+        when(accountAuthorizationService.getAuthenticatedCustomerId(nullable(org.springframework.security.core.Authentication.class))).thenReturn(customerId);
         when(financialAccountService.getAccount(accountId, customerId)).thenReturn(response);
 
         mockMvc.perform(get("/accounts/{accountId}", accountId))
