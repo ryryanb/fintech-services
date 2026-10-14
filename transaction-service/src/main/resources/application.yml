@@ -3,9 +3,9 @@ spring:
     name: transaction-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5437/transaction_db
-    username: saas_user
-    password: saas_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5437/transaction_db}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     hibernate:
