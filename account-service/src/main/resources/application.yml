@@ -3,9 +3,9 @@ spring:
     name: account-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/accountdb
-    username: accountuser
-    password: accountpassword
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/account_db}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     hibernate:

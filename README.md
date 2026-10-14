@@ -74,6 +74,18 @@ The Compose file publishes these ports on your machine:
 
 The database credentials in the Compose file are **development-only defaults**. Do not reuse them in a production environment.
 
+## Protecting local secrets (SEC-002)
+
+Credentials are supplied through an untracked root `.env` file; the committed `.env.example` contains variable names and safe local-only sample values, never real credentials. Create your local file before running Compose:
+
+```bash
+cp .env.example .env
+```
+
+Replace every sample password with a unique local development password. Compose intentionally fails fast if a required database username or password is missing. Do not use these local values in shared, staging, or production environments. For deployment, inject credentials from the deployment platform's secret manager rather than committing an environment file.
+
+The Auth Service signing key is also local-only: keep `auth-service/keys/jwt-private.pem` out of Git (it is ignored by `.gitignore`). Generate/provision a key locally and never paste a real private key into source control. Public verification keys may be committed when needed; private signing keys must not be.
+
 ## 3. Build and start the backend with Docker Compose
 
 From the repository root, run:
