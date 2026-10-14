@@ -67,7 +67,6 @@ class FinancialAccountServiceImplTest {
     void shouldNotReturnAccountOwnedByAnotherCustomer() {
         UUID accountId = UUID.randomUUID();
         UUID authenticatedCustomerId = UUID.randomUUID();
-        UUID accountOwnerId = UUID.randomUUID();
         when(repository.findByIdAndCustomerId(accountId, authenticatedCustomerId))
                 .thenReturn(Optional.empty());
 
