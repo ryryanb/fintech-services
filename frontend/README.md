@@ -58,8 +58,8 @@ deployment configuration accordingly.
 
 Selecting **Sign in** on the registration screen opens a dedicated login form.
 The form includes required email and password inputs, appropriate autocomplete
-hints, a show/hide password control, a remember-me checkbox, and a password
-recovery link placeholder. **Create account** returns to the registration form.
+hints, a show/hide password control, and a password recovery link placeholder.
+**Create account** returns to the registration form.
 
 This story implements the login form UI only. Submitting the form displays an
 informational message; it does not authenticate credentials or create a session.
@@ -85,9 +85,13 @@ success, the UI validates the response shape, clears the password field, and
 shows a signed-in state with token type and expiry. Invalid credentials and
 service errors are presented without exposing backend internals.
 
-The access token is held in React memory only; it is not written to
-localStorage, sessionStorage, cookies, or logs. Refreshing the page clears this
-client-side session, so the user must sign in again. FE-008 adds a protected
+The access token is held by the dedicated `authSession` module in JavaScript
+memory only; it is not written to localStorage, sessionStorage, cookies, URLs,
+or logs, and is not passed through React component props/state. Signing out
+clears the token. Refreshing or closing the page clears this client-side session,
+so the user must sign in again. This limits accidental persistence and exposure,
+but an in-memory token remains accessible to JavaScript executing in the page;
+preventing XSS remains essential. FE-008 adds a protected
 `/profile` route: direct unauthenticated visits redirect to `/login`, and the
 profile component is rendered only when the in-memory session exists. This is
 client-side navigation protection, not a substitute for backend authorization.
@@ -117,8 +121,8 @@ port 8082; authentication requests continue to route to Auth Service on port
 
 The profile displays the user's name, email, status, and customer number when
 available. It includes loading, unavailable/error, and retry states, and a
-sign-out action. The access token remains in memory and is not persisted by the
-frontend.
+sign-out action. The access token is retrieved from the in-memory `authSession` module for the
+request and is not persisted by the frontend.
 
 **Security note:** The frontend sends the bearer token, but the existing
 Customer Service `GET /customers/by-user/{userId}` endpoint must enforce JWT
@@ -142,6 +146,34 @@ server-side authorization is enforced.
 7. Before deployment, confirm Customer Service rejects missing/invalid tokens
    and prevents one user's token from reading another user's profile.
 
+
+## FE-007: Store Access Token Securely
+
+The frontend stores the access token in a dedicated in-memory module rather than
+React component state or props. The token is never written to localStorage,
+sessionStorage, cookies, URLs, or logs. The profile request obtains the token
+only when it needs to construct the Authorization header. Signing out clears
+the in-memory token. A page reload or closing the tab clears the session and
+requires another sign-in; the UI does not offer a misleading "Remember me"
+option.
+
+This is a client-side exposure reduction, not an XSS defense. Any malicious
+JavaScript executing in the page could still access a JavaScript-memory token.
+Use a strict Content Security Policy, avoid unsafe script injection, and keep
+dependencies updated. An HttpOnly, Secure, SameSite cookie-based session would
+require a coordinated backend change and CSRF protections; it is not implied
+by this frontend-only story.
+
+### Verify FE-007
+
+1. Sign in and verify profile requests include the bearer token in the
+   Authorization header; do not copy or share the token.
+2. Inspect application storage and confirm the token is absent from localStorage,
+   sessionStorage, and cookies.
+3. Sign out and verify the in-memory token is cleared and the profile is no
+   longer rendered.
+4. Refresh `/profile` and verify the app requires sign-in again.
+5. Run `npm run typecheck` and `npm run build` from `frontend/`.
 
 ## FE-008: Protect Authenticated Routes
 

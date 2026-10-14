@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getAccessToken } from './authSession';
 
 type UserProfileData = {
   id: string;
@@ -11,7 +12,6 @@ type UserProfileData = {
 };
 
 type UserProfileProps = {
-  accessToken: string;
   onSignOut: () => void;
 };
 
@@ -41,7 +41,7 @@ function initials(profile: UserProfileData): string {
   return `${profile.firstName.trim().charAt(0)}${profile.lastName.trim().charAt(0)}`.toUpperCase() || 'U';
 }
 
-export default function UserProfile({ accessToken, onSignOut }: UserProfileProps) {
+export default function UserProfile({ onSignOut }: UserProfileProps) {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,7 +49,20 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
 
   useEffect(() => {
     const controller = new AbortController();
-    const extractedUserId = getUserIdFromToken(accessToken); if (!extractedUserId) { setError('We could not identify your account. Please sign in again.'); setLoading(false); return () => controller.abort(); } const userId: string = extractedUserId;
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      setError('Your session has ended. Please sign in again.');
+      setLoading(false);
+      return () => controller.abort();
+    }
+
+    const extractedUserId = getUserIdFromToken(accessToken);
+    if (!extractedUserId) {
+      setError('We could not identify your account. Please sign in again.');
+      setLoading(false);
+      return () => controller.abort();
+    }
+    const userId = extractedUserId;
 
     async function loadProfile() {
       setLoading(true);
@@ -114,7 +127,7 @@ export default function UserProfile({ accessToken, onSignOut }: UserProfileProps
 
     void loadProfile();
     return () => controller.abort();
-  }, [accessToken, retryCount]);
+  }, [retryCount]);
 
   return (
     <main className="page-shell profile-page">
