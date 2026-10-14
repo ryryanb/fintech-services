@@ -9,9 +9,9 @@ services:
     container_name: fintech-auth-db
 
     environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: saas_user
-      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
 
     ports:
       - "5436:5432"
@@ -32,9 +32,9 @@ services:
     container_name: fintech-customer-db
 
     environment:
-      POSTGRES_DB: customer_db
-      POSTGRES_USER: saas_user
-      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: ${CUSTOMER_DB_NAME:-customer_db}
+      POSTGRES_USER: ${CUSTOMER_DB_USERNAME:?Set CUSTOMER_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in .env}
 
     ports:
       - "5433:5432"
@@ -55,9 +55,9 @@ services:
     container_name: fintech-account-db
 
     environment:
-      POSTGRES_DB: account_db
-      POSTGRES_USER: saas_user
-      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: ${ACCOUNT_DB_NAME:-account_db}
+      POSTGRES_USER: ${ACCOUNT_DB_USERNAME:?Set ACCOUNT_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${ACCOUNT_DB_PASSWORD:?Set ACCOUNT_DB_PASSWORD in .env}
 
     ports:
       - "5434:5432"
@@ -78,9 +78,9 @@ services:
     container_name: fintech-transaction-db
 
     environment:
-      POSTGRES_DB: transaction_db
-      POSTGRES_USER: saas_user
-      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: ${TRANSACTION_DB_NAME:-transaction_db}
+      POSTGRES_USER: ${TRANSACTION_DB_USERNAME:?Set TRANSACTION_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${TRANSACTION_DB_PASSWORD:?Set TRANSACTION_DB_PASSWORD in .env}
 
     ports:
       - "5437:5432"
@@ -104,8 +104,8 @@ services:
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
-      SPRING_DATASOURCE_USERNAME: saas_user
-      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_USERNAME: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
@@ -140,8 +140,8 @@ services:
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
-      SPRING_DATASOURCE_USERNAME: saas_user
-      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_USERNAME: ${CUSTOMER_DB_USERNAME:?Set CUSTOMER_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
@@ -168,8 +168,8 @@ services:
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db
-      SPRING_DATASOURCE_USERNAME: saas_user
-      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_USERNAME: ${ACCOUNT_DB_USERNAME:?Set ACCOUNT_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${ACCOUNT_DB_PASSWORD:?Set ACCOUNT_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
@@ -195,8 +195,8 @@ services:
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5432/transaction_db
-      SPRING_DATASOURCE_USERNAME: saas_user
-      SPRING_DATASOURCE_PASSWORD: saas_password
+      SPRING_DATASOURCE_USERNAME: ${TRANSACTION_DB_USERNAME:?Set TRANSACTION_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${TRANSACTION_DB_PASSWORD:?Set TRANSACTION_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
       SERVICES_ACCOUNT_BASE_URL: http://account-service:8083
