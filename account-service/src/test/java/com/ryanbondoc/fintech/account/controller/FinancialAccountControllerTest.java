@@ -1,5 +1,7 @@
 package com.ryanbondoc.fintech.account.controller;
 
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -25,50 +27,43 @@ import com.ryanbondoc.fintech.account.service.FinancialAccountService;
 
 @WebMvcTest(FinancialAccountController.class)
 @ImportAutoConfiguration(exclude = {
-                OAuth2ResourceServerAutoConfiguration.class,
-                OAuth2ResourceServerWebSecurityAutoConfiguration.class
+        OAuth2ResourceServerAutoConfiguration.class,
+        OAuth2ResourceServerWebSecurityAutoConfiguration.class
 })
 class FinancialAccountControllerTest {
 
-        @Autowired
-        private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-        @MockitoBean
-        private FinancialAccountService financialAccountService;
+    @MockitoBean
+    private FinancialAccountService financialAccountService;
 
-        @MockitoBean
-        private AccountAuthorizationService accountAuthorizationService;
+    @MockitoBean
+    private AccountAuthorizationService accountAuthorizationService;
 
-        @Test
-        void shouldGetAccountById() throws Exception {
+    @Test
+    void shouldGetAccountWithinAuthenticatedCustomerScope() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        FinancialAccountResponse response = new FinancialAccountResponse(
+                accountId,
+                customerId,
+                "Primary Account",
+                AccountType.BANK_ACCOUNT,
+                "PHP",
+                new BigDecimal("10000.00"),
+                "FinTech Bank",
+                AccountStatus.ACTIVE);
 
-                UUID accountId = UUID.randomUUID();
-                UUID customerId = UUID.randomUUID();
+        when(accountAuthorizationService.getAuthenticatedCustomerId(null)).thenReturn(customerId);
+        when(financialAccountService.getAccount(accountId, customerId)).thenReturn(response);
 
-                FinancialAccountResponse response = new FinancialAccountResponse(
-                                accountId,
-                                customerId,
-                                "Primary Account",
-                                AccountType.BANK_ACCOUNT,
-                                "PHP",
-                                new BigDecimal("10000.00"),
-                                "FinTech Bank",
-                                AccountStatus.ACTIVE);
+        mockMvc.perform(get("/accounts/{accountId}", accountId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(accountId.toString()))
+                .andExpect(jsonPath("$.customerId").value(customerId.toString()))
+                .andExpect(jsonPath("$.currency").value("PHP"));
 
-                when(financialAccountService.getAccount(accountId))
-                                .thenReturn(response);
-
-                mockMvc.perform(
-                                get("/accounts/{accountId}", accountId))
-                                .andExpect(status().isOk())
-                                .andExpect(
-                                                jsonPath("$.id")
-                                                                .value(accountId.toString()))
-                                .andExpect(
-                                                jsonPath("$.customerId")
-                                                                .value(customerId.toString()))
-                                .andExpect(
-                                                jsonPath("$.currency")
-                                                                .value("PHP"));
-        }
+        verify(financialAccountService).getAccount(accountId, customerId);
+    }
 }
