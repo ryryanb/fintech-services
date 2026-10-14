@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import UserProfile from './UserProfile';
+import ProtectedRoute from './ProtectedRoute';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -37,6 +38,12 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     tokenType: string;
     expiresIn: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (!session && window.location.pathname === '/profile') {
+      window.history.replaceState(null, '', '/login');
+    }
+  }, [session]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +89,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
         tokenType: payload.tokenType,
         expiresIn: payload.expiresIn,
       });
+      window.history.pushState(null, '', '/profile');
       setPassword('');
       setNotice('');
     } catch (error) {
@@ -98,12 +106,24 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     }
   }
 
-  if (session) return <UserProfile accessToken={session.accessToken} onSignOut={() => setSession(null)} />;
+  if (session && window.location.pathname === '/profile') {
+    return (
+      <ProtectedRoute isAuthenticated={Boolean(session)}>
+        <UserProfile
+          accessToken={session.accessToken}
+          onSignOut={() => {
+            setSession(null);
+            window.history.replaceState(null, '', '/login');
+          }}
+        />
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <main className="page-shell login-page">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Fintech home" onClick={(event) => { event.preventDefault(); onCreateAccount(); }}>
+        <a className="brand" href="/" aria-label="Fintech home" onClick={(event) => { event.preventDefault(); window.history.pushState(null, '', '/'); onCreateAccount(); }}>
           <BrandMark />
           <span>fintech<span className="brand-period">.</span></span>
         </a>
