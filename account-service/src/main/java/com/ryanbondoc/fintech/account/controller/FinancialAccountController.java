@@ -39,7 +39,6 @@ public class FinancialAccountController {
             @Valid @RequestBody CreateFinancialAccountRequest request,
             Authentication authentication) {
 
-        UUID customerId = accountAuthorizationService.getAuthenticatedCustomerId(authentication);
         accountAuthorizationService.requireCustomerAccess(authentication, request.customerId());
 
         FinancialAccountResponse response = financialAccountService.createAccount(request);
