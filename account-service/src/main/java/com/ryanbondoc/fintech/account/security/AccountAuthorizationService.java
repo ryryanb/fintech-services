@@ -11,10 +11,8 @@ import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 import com.ryanbondoc.fintech.account.exception.ForbiddenException;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class AccountAuthorizationService {
 
@@ -73,11 +71,6 @@ public class AccountAuthorizationService {
         } catch (IllegalArgumentException ex) {
             throw new ForbiddenException("Invalid customerId claim");
         }
-        log.info(
-                "Account authorization: jwtCustomerId={}, accountCustomerId={}, accountId={}",
-                authenticatedCustomerId,
-                account.customerId(),
-                account.id());
         if (!authenticatedCustomerId.equals(account.customerId())) {
             throw new ForbiddenException("Account does not belong to customer");
         }
