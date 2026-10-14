@@ -344,10 +344,11 @@ void shouldQueryByCustomerId() {
 void shouldReturnAccountBalance() {
     // Given
     UUID accountId = UUID.randomUUID();
+    UUID customerId = UUID.randomUUID();
 
     FinancialAccount account = FinancialAccount.builder()
             .id(accountId)
-            .customerId(UUID.randomUUID())
+            .customerId(customerId)
             .name("BPI Savings")
             .type(AccountType.BANK_ACCOUNT)
             .currency("PHP")
@@ -356,12 +357,12 @@ void shouldReturnAccountBalance() {
             .status(AccountStatus.ACTIVE)
             .build();
 
-    when(financialAccountRepository.findById(accountId))
+    when(financialAccountRepository.findByIdAndCustomerId(accountId, customerId))
             .thenReturn(Optional.of(account));
 
     // When
     AccountBalanceResponse response =
-            financialAccountService.getAccountBalance(accountId);
+            financialAccountService.getAccountBalance(accountId, customerId);
 
     // Then
     assertThat(response.accountId())
@@ -374,25 +375,26 @@ void shouldReturnAccountBalance() {
             .isEqualByComparingTo("50000.00");
 
     verify(financialAccountRepository)
-            .findById(accountId);
+            .findByIdAndCustomerId(accountId, customerId);
 }
 
 @Test
 void shouldThrowExceptionWhenAccountDoesNotExist() {
     // Given
     UUID accountId = UUID.randomUUID();
+    UUID customerId = UUID.randomUUID();
 
-    when(financialAccountRepository.findById(accountId))
+    when(financialAccountRepository.findByIdAndCustomerId(accountId, customerId))
             .thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() ->
-        financialAccountService.getAccountBalance(accountId))
+        financialAccountService.getAccountBalance(accountId, customerId))
         .isInstanceOf(FinancialAccountNotFoundException.class)
         .hasMessageContaining(accountId.toString());
 
     verify(financialAccountRepository)
-            .findById(accountId);
+            .findByIdAndCustomerId(accountId, customerId);
 }
 
 

@@ -356,6 +356,10 @@ The service is organized into dedicated packages for controllers, DTOs, entities
 
 ---
 
+## Account ownership and isolation
+
+Account Service endpoints derive the effective customer scope from the validated JWT `customerId` claim. Account-list requests are checked against that identity, while single-account and balance reads use customer-scoped database lookups (`accountId` plus `customerId`). An account that does not belong to the authenticated customer is treated as not found to avoid disclosing another customer's account existence. Do not use a customer ID supplied by the client as proof of ownership.
+
 ## Account Service
 
 `account-service`

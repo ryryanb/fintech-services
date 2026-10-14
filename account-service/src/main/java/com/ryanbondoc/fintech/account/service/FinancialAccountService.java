@@ -9,16 +9,11 @@ import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 
 public interface FinancialAccountService {
 
-        FinancialAccountResponse createAccount(
-                        CreateFinancialAccountRequest request);
+    FinancialAccountResponse createAccount(CreateFinancialAccountRequest request);
 
-        List<FinancialAccountResponse> getAccounts(
-                        UUID customerId);
+    List<FinancialAccountResponse> getAccounts(UUID customerId);
 
-        AccountBalanceResponse getAccountBalance(
-                        UUID accountId);
+    AccountBalanceResponse getAccountBalance(UUID accountId, UUID customerId);
 
-        FinancialAccountResponse getAccount(UUID accountId);
-
-        boolean belongsToCustomer(UUID accountId, UUID customerId);
+    FinancialAccountResponse getAccount(UUID accountId, UUID customerId);
 }
