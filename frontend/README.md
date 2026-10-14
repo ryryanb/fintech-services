@@ -87,9 +87,10 @@ service errors are presented without exposing backend internals.
 
 The access token is held in React memory only; it is not written to
 localStorage, sessionStorage, cookies, or logs. Refreshing the page clears this
-client-side session. The current story demonstrates authentication and token
-issuance; it does not yet implement protected account pages, token refresh, or
-a persistent session.
+client-side session, so the user must sign in again. FE-008 adds a protected
+`/profile` route: direct unauthenticated visits redirect to `/login`, and the
+profile component is rendered only when the in-memory session exists. This is
+client-side navigation protection, not a substitute for backend authorization.
 
 ### Verify FE-006
 
@@ -140,3 +141,23 @@ server-side authorization is enforced.
 6. Verify sign out returns to the login screen.
 7. Before deployment, confirm Customer Service rejects missing/invalid tokens
    and prevents one user's token from reading another user's profile.
+
+
+## FE-008: Protect Authenticated Routes
+
+- `/` displays the public registration page.
+- `/login` displays the public sign-in page.
+- `/profile` is protected and renders the profile only when a successful login has established an in-memory session.
+- Visiting `/profile` without a session redirects to `/login`; signing out clears the session and returns to `/login`.
+- Refreshing clears the in-memory session, so `/profile` returns to the sign-in screen.
+
+### Verify FE-008
+
+1. Open `http://localhost:5173/profile` in a signed-out browser. Confirm the sign-in screen appears and the URL changes to `/login`.
+2. Attempt to open `/profile` again while signed out. Confirm the profile content never appears.
+3. Sign in with a valid account. Confirm the URL becomes `/profile` and the profile page loads.
+4. Refresh `/profile`. Confirm the session is gone and the app returns to sign-in.
+5. Sign in again, select **Sign out**, and confirm the URL becomes `/login` and profile data is no longer rendered.
+6. Run `npm run typecheck` and `npm run build` from `frontend/`.
+
+**Security boundary:** A React route guard only controls what the browser renders. APIs that return customer or financial data must independently validate the bearer token and authorize access to the requested user's data.
