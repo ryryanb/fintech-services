@@ -375,7 +375,7 @@ void shouldReturnAccountBalance() {
             .isEqualByComparingTo("50000.00");
 
     verify(financialAccountRepository)
-            .findById(accountId);
+            .findByIdAndCustomerId(accountId, customerId);
 }
 
 @Test
@@ -384,17 +384,17 @@ void shouldThrowExceptionWhenAccountDoesNotExist() {
     UUID accountId = UUID.randomUUID();
     UUID customerId = UUID.randomUUID();
 
-    when(financialAccountRepository.findById(accountId))
+    when(financialAccountRepository.findByIdAndCustomerId(accountId, customerId))
             .thenReturn(Optional.empty());
 
     // When / Then
     assertThatThrownBy(() ->
-        financialAccountService.getAccountBalance(accountId))
+        financialAccountService.getAccountBalance(accountId, customerId))
         .isInstanceOf(FinancialAccountNotFoundException.class)
         .hasMessageContaining(accountId.toString());
 
     verify(financialAccountRepository)
-            .findById(accountId);
+            .findByIdAndCustomerId(accountId, customerId);
 }
 
 
