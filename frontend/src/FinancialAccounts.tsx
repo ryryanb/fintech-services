@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getAccessToken } from './authSession';
 
+type FinancialAccountsProps = {
+  onBackToProfile: () => void;
+  onSignOut: () => void;
+};
+
 type FinancialAccount = {
   id: string;
   customerId: string;
@@ -75,7 +80,7 @@ function friendlyError(responseStatus: number, context: 'list' | 'detail'): stri
     : 'We could not load your financial accounts. Please try again.';
 }
 
-export default function FinancialAccounts() {
+export default function FinancialAccounts({ onBackToProfile, onSignOut }: FinancialAccountsProps) {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
@@ -177,7 +182,18 @@ export default function FinancialAccounts() {
   }
 
   return (
-    <section className="financial-accounts" aria-labelledby="financial-accounts-title">
+    <main className="page-shell accounts-page">
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="Fintech home" onClick={(event) => event.preventDefault()}>
+          <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 23.5V8.5h4.2l4.8 7.1 4.8-7.1H25v15h-4.4v-8.1L16 22l-4.6-6.6v8.1H7Z" fill="currentColor" /></svg></span>
+          <span>fintech<span className="brand-period">.</span></span>
+        </a>
+        <div className="topbar-prompt profile-nav-actions">
+          <button className="text-link" type="button" onClick={onBackToProfile}>Profile</button>
+          <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
+        </div>
+      </header>
+      <section className="financial-accounts" aria-labelledby="financial-accounts-title">
       <div className="financial-accounts-heading">
         <div>
           <span className="eyebrow"><span className="eyebrow-dot" /> YOUR MONEY</span>
@@ -205,7 +221,7 @@ export default function FinancialAccounts() {
               <div className="profile-error-mark" aria-hidden="true">!</div>
               <h3>Account details unavailable</h3>
               <p className="profile-message" role="alert">{detailError}</p>
-              <button className="submit-button" type="button" onClick={() => setDetailRetry((count) => count + 1)}>Try again</button>
+              <button className="submit-button" type="button" onClick={() => { setDetailRetry((count) => count + 1); void viewAccount(selectedAccountId); }}>Try again</button>
             </div>
           )}
           {!detailLoading && selectedAccount && (
@@ -295,6 +311,8 @@ export default function FinancialAccounts() {
         </>
       )}
       <span className="visually-hidden" aria-live="polite">{detailRetry > 0 ? 'Retrying account details.' : ''}</span>
-    </section>
+      </section>
+      <footer className="form-footer accounts-footer">© 2026 Fintech Services <span aria-hidden="true">·</span> Your financial life, in clearer view</footer>
+    </main>
   );
 }
