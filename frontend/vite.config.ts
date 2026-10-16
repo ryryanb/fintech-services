@@ -10,7 +10,7 @@ export default defineConfig({
       '/api/accounts': {
         target: 'http://localhost:8083',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\\/api/, ''),
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/api/customers': {
         target: 'http://localhost:8082',
