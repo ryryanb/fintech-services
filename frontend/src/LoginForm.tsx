@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { clearAccessToken, setAccessToken } from './authSession';
 import UserProfile from './UserProfile';
 import ProtectedRoute from './ProtectedRoute';
+import FinancialAccounts from './FinancialAccounts';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -35,11 +36,22 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   const [noticeIsError, setNoticeIsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   useEffect(() => {
-    if (!isAuthenticated && window.location.pathname === '/profile') {
-      window.history.replaceState(null, '', '/login');
+    function syncPath() {
+      const path = window.location.pathname;
+      if (!isAuthenticated && ['/profile', '/accounts'].includes(path)) {
+        window.history.replaceState(null, '', '/login');
+        setCurrentPath('/login');
+        return;
+      }
+      setCurrentPath(path);
     }
+
+    syncPath();
+    window.addEventListener('popstate', syncPath);
+    return () => window.removeEventListener('popstate', syncPath);
   }, [isAuthenticated]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -84,6 +96,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
       setAccessToken(payload.accessToken);
       setIsAuthenticated(true);
       window.history.pushState(null, '', '/profile');
+      setCurrentPath('/profile');
       setPassword('');
       setNotice('');
     } catch (error) {
@@ -100,7 +113,26 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     }
   }
 
-  if (isAuthenticated && window.location.pathname === '/profile') {
+  if (isAuthenticated && currentPath === '/accounts') {
+    return (
+      <ProtectedRoute isAuthenticated={isAuthenticated}>
+        <FinancialAccounts
+          onBackToProfile={() => {
+            window.history.pushState(null, '', '/profile');
+            setCurrentPath('/profile');
+          }}
+          onSignOut={() => {
+            clearAccessToken();
+            setIsAuthenticated(false);
+            window.history.replaceState(null, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      </ProtectedRoute>
+    );
+  }
+
+  if (isAuthenticated && currentPath === '/profile') {
     return (
       <ProtectedRoute isAuthenticated={isAuthenticated}>
         <UserProfile
@@ -108,6 +140,11 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
             clearAccessToken();
             setIsAuthenticated(false);
             window.history.replaceState(null, '', '/login');
+            setCurrentPath('/login');
+          }}
+          onViewAccounts={() => {
+            window.history.pushState(null, '', '/accounts');
+            setCurrentPath('/accounts');
           }}
         />
       </ProtectedRoute>

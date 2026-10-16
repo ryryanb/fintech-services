@@ -18,6 +18,30 @@ The project focuses on building a realistic financial-services backend with clea
 
 ![User profile page](docs/images/profile.png)
 
+## Accounts
+
+![User profile page](docs/images/accounts.png)
+
+## Account Details
+
+![User profile page](docs/images/account_details.png)
+
+## Auth Service Swagger UI
+
+![User profile page](docs/images/auth_service.png)
+
+## Customer Service Swagger UI
+
+![User profile page](docs/images/customer_swagger.png)
+
+## Accounts Service Swagger UI
+
+![User profile page](docs/images/accounts_swagger.png)
+
+## Transaction Service Swagger UI
+
+![User profile page](docs/images/transaction_service.png)
+
 
 # 🚀 Local Development: Build and Run the Platform
 

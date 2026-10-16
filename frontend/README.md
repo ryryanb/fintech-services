@@ -193,3 +193,19 @@ by this frontend-only story.
 6. Run `npm run typecheck` and `npm run build` from `frontend/`.
 
 **Security boundary:** A React route guard only controls what the browser renders. APIs that return customer or financial data must independently validate the bearer token and authorize access to the requested user's data.
+
+## FE-022: View Account Details
+
+After signing in, select **Financial accounts** from the profile page to view accounts associated with the customer ID in the access token. The frontend requests `GET /api/accounts?customerId={customerId}` through the Vite proxy to Account Service on port `8083`. Selecting **View details** requests `GET /api/accounts/{accountId}` and displays the account name, type, institution, currency, current balance, status, and account ID.
+
+The screen includes loading, empty, retry, and friendly error states. The bearer token is read from the in-memory `authSession` module and is not persisted or logged. Account Service must independently validate the JWT and enforce customer ownership for both the list and detail endpoints; the customer ID in a decoded browser token is only used to form the request, not treated as an authorization boundary.
+
+### Verify FE-022
+
+1. Start Auth Service, Account Service, and their PostgreSQL databases, then run the frontend from `frontend/` with `npm run dev`.
+2. Sign in with a user whose JWT contains a valid `customerId` claim.
+3. Open **Financial accounts** from the profile and confirm the list displays the account name, institution/type, balance, currency, and status.
+4. Select **View details** and confirm the account details are fetched from `GET /accounts/{accountId}`.
+5. Confirm empty-account, service-unavailable, unauthorized, and not-found states show a useful message and retry where appropriate.
+6. Verify an account owned by another customer cannot be retrieved using the signed-in user's token; this must be enforced by Account Service, not the frontend.
+7. Run `npm run typecheck` and `npm run build`.

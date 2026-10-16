@@ -75,11 +75,11 @@ function LockIcon() {
 }
 
 function App() {
-  const [showLogin, setShowLogin] = useState(() => ['/login', '/profile'].includes(window.location.pathname));
+  const [showLogin, setShowLogin] = useState(() => ['/login', '/profile', '/accounts'].includes(window.location.pathname));
 
   useEffect(() => {
     function syncRoute() {
-      setShowLogin(['/login', '/profile'].includes(window.location.pathname));
+      setShowLogin(['/login', '/profile', '/accounts'].includes(window.location.pathname));
     }
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
