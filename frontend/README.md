@@ -299,3 +299,22 @@ The form creates a tracking record in this application only. It does not open a 
 7. Verify cancelling returns to the account list without making an API request.
 8. Test with two users: a user must not be able to create an account for another customer's ID. Account Service must reject this request even if a client manually changes the request body.
 9. Run `npm run typecheck` and `npm run build`.
+
+
+## FE-029: Display Transaction Details
+
+Select a transaction title or its **Details** action in the transaction history to open the protected `/transactions/{transactionId}` route. The page retrieves the individual transaction using `GET /api/transactions/{transactionId}` with the authenticated bearer token and displays its ID, type, direction, amount, currency, merchant/payee, category, description, status, and date/time. It also attempts to retrieve the linked account's name and institution from `GET /api/accounts/{accountId}`; the transaction details remain visible if supplementary account metadata is unavailable.
+
+The page includes loading, retry, not-found, unauthorized, and service-error states, responsive detail fields, and navigation back to transaction history or to accounts. Direct access to the detail route is protected by the frontend route guard. This client-side guard is only a usability measure: Transaction Service must independently authenticate the bearer token and authorize access to the transaction's associated account before returning data.
+
+### Verify FE-029
+
+1. Start the Auth Service, Account Service, and Transaction Service, including their required databases; run the frontend with `npm run dev`.
+2. Sign in and open **Transactions**. Verify each transaction provides a clickable activity title and a **Details** action.
+3. Open a transaction and verify the page shows its amount, currency, direction, type, category, merchant/payee, description, status, date/time, transaction ID, and linked account metadata when available.
+4. Verify the amount is formatted using the transaction currency and credits/debits are visually distinguished.
+5. Verify **Back to transactions**, **Accounts**, and **Sign out** work.
+6. Open `/transactions/{transactionId}` directly while signed out and confirm the user is redirected to sign-in. Sign in and open a valid transaction URL to verify it loads.
+7. Test a nonexistent transaction ID and a transaction belonging to another customer. The backend must return an appropriate not-found/forbidden response without leaking transaction data; the frontend should display a safe error.
+8. Stop Transaction Service and verify the UI displays a helpful error and retry action. If account lookup fails while the transaction lookup succeeds, transaction details should still display.
+9. Run `npm run typecheck` and `npm run build` from `frontend/`.
