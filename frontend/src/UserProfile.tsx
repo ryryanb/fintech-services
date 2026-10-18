@@ -14,6 +14,7 @@ type UserProfileData = {
 type UserProfileProps = {
   onSignOut: () => void;
   onViewAccounts: () => void;
+  onViewTransactions: () => void;
 };
 
 function getUserIdFromToken(token: string): string | null {
@@ -42,7 +43,7 @@ function initials(profile: UserProfileData): string {
   return `${profile.firstName.trim().charAt(0)}${profile.lastName.trim().charAt(0)}`.toUpperCase() || 'U';
 }
 
-export default function UserProfile({ onSignOut, onViewAccounts }: UserProfileProps) {
+export default function UserProfile({ onSignOut, onViewAccounts, onViewTransactions }: UserProfileProps) {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -141,6 +142,7 @@ export default function UserProfile({ onSignOut, onViewAccounts }: UserProfilePr
         </a>
         <div className="topbar-prompt profile-nav-actions">
           <button className="text-link" type="button" onClick={onViewAccounts}>Financial accounts</button>
+          <button className="text-link" type="button" onClick={onViewTransactions}>Transactions</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </div>
       </header>
