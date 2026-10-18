@@ -196,7 +196,7 @@ by this frontend-only story.
 
 ## FE-022: View Account Details
 
-After signing in, select **Financial accounts** from the profile page to view accounts associated with the customer ID in the access token. The frontend requests `GET /api/accounts?customerId={customerId}` through the Vite proxy to Account Service on port `8083`. Selecting **View details** requests `GET /api/accounts/{accountId}` and displays the account name, type, institution, currency, current balance, status, and account ID.
+After signing in, select **Financial accounts** from the profile page to view accounts associated with the customer ID in the access token. The frontend requests `GET /api/accounts` through the Vite proxy to Account Service on port `8083`. The service derives customer identity from the validated bearer token; a customer ID supplied by the browser is not used to choose the result scope. Selecting **View details** requests `GET /api/accounts/{accountId}` and displays the account name, type, institution, currency, current balance, status, and account ID.
 
 The screen includes loading, empty, retry, and friendly error states. The bearer token is read from the in-memory `authSession` module and is not persisted or logged. Account Service must independently validate the JWT and enforce customer ownership for both the list and detail endpoints; the customer ID in a decoded browser token is only used to form the request, not treated as an authorization boundary.
 
@@ -213,7 +213,7 @@ The screen includes loading, empty, retry, and friendly error states. The bearer
 
 ## FE-028: Display Transactions
 
-After signing in, select **Transactions** from the profile page. The frontend loads the authenticated customer's accounts through `GET /api/accounts?customerId={customerId}`, then requests `GET /api/transactions?accountId={accountId}` for each returned account. It combines the results into one newest-first activity list with merchant/description, category, account, transaction date, status, and signed amount.
+After signing in, select **Transactions** from the profile page. The frontend loads the authenticated customer's accounts through `GET /api/accounts`, then requests `GET /api/transactions?accountId={accountId}` for each returned account. It combines the results into one newest-first activity list with merchant/description, category, account, transaction date, status, and signed amount.
 
 The view supports account filtering, text search, refresh, loading and retry states, and a helpful empty state. Credits are displayed with a plus sign and debits with a minus sign. The Vite proxy forwards `/api/transactions` to Transaction Service on port `8087`.
 
@@ -258,3 +258,23 @@ The Account Service derives the customer ID for `GET /accounts` from the validat
 2. Add a `customerId` query parameter containing customer B's ID to the same request. Confirm the response still contains only customer A's accounts.
 3. Request an account detail or balance using an account ID belonging to customer B. Confirm the service does not return that account's data.
 4. Call `GET /accounts` without a valid bearer token. Confirm access is rejected by Spring Security.
+
+
+## SEC-001: Isolate Customer Financial Data
+
+Customer identity and ownership are enforced by backend services; frontend routing and decoded client-side claims are not authorization boundaries.
+
+- **Account Service:** requires an authenticated JWT, derives the customer ID from its `customerId` claim for account listing, and scopes individual account and balance lookups by both account ID and authenticated customer ID. Account creation rejects a request whose customer ID does not match the authenticated customer.
+- **Transaction Service:** validates account ownership with Account Service before listing transactions or creating a transaction. For transaction-by-ID reads, it verifies ownership of the transaction's associated account before returning the transaction.
+- **Customer Service:** checks authenticated user/customer identity for customer profile and address operations; customer listing and search require the administrator role.
+- **Failure behavior:** missing or invalid authentication is rejected by Spring Security. Requests for data outside the authenticated customer's scope are denied or return not found, without returning the protected financial data.
+
+### Verify SEC-001
+
+1. Run backend tests from the repository root with `./mvnw test` (or run the relevant service's Maven tests).
+2. Confirm the Account Service controller test verifies that a client-supplied `customerId` cannot change the account-list scope.
+3. Confirm Transaction Service authorization tests allow the owning customer and reject another customer's account, unverifiable ownership, and transactions linked to another customer's account.
+4. Using two test users, sign in as user A and try to list user B's accounts, retrieve user B's account/balance by ID, list transactions for user B's account, and retrieve a transaction belonging to user B. None of these requests should return user B's financial data.
+5. Attempt to create an account for user B while authenticated as user A, and attempt to create a transaction against user B's account. Both operations must be rejected and must not persist data.
+6. Repeat with no token and with an invalid/expired token; protected endpoints must reject the requests.
+7. Do not use a decoded token, hidden frontend controls, or a customer/account ID supplied by the client as proof of ownership.
