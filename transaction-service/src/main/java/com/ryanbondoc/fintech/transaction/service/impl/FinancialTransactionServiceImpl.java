@@ -71,7 +71,7 @@ public class FinancialTransactionServiceImpl
                                 .currency(request.currency())
                                 .merchant(request.merchant())
                                 .category(
-                                                request.category() != null && request.category() != TransactionCategory.OTHER
+                                                request.category() != null
                                                                 ? request.category()
                                                                 : TransactionCategorizer.categorize(
                                                                                 request.merchant(),
