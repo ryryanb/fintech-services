@@ -17,25 +17,6 @@ type FinancialAccount = {
   status: string;
 };
 
-type TokenClaims = {
-  customerId?: unknown;
-};
-
-function getCustomerIdFromToken(token: string): string | null {
-  try {
-    const encodedPayload = token.split('.')[1];
-    if (!encodedPayload) return null;
-    const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '='));
-    const claims: unknown = JSON.parse(decoded);
-    if (typeof claims !== 'object' || claims === null) return null;
-    const customerId = (claims as TokenClaims).customerId;
-    return typeof customerId === 'string' && customerId.length > 0 ? customerId : null;
-  } catch {
-    return null;
-  }
-}
-
 function isFinancialAccount(value: unknown): value is FinancialAccount {
   if (typeof value !== 'object' || value === null) return false;
   const account = value as Record<string, unknown>;
@@ -94,20 +75,18 @@ export default function FinancialAccounts({ onBackToProfile, onSignOut }: Financ
   useEffect(() => {
     const controller = new AbortController();
     const token = getAccessToken();
-    const customerId = token ? getCustomerIdFromToken(token) : null;
-
     async function loadAccounts() {
       setLoading(true);
       setListError('');
-      if (!token || !customerId) {
+      if (!token) {
         setAccounts([]);
-        setListError('We could not identify your customer profile. Please sign in again.');
+        setListError('Your session has ended. Please sign in again.');
         setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(`/api/accounts?customerId=${encodeURIComponent(customerId)}`, {
+        const response = await fetch('/api/accounts', {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
           signal: controller.signal,
         });
