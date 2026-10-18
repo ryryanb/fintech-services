@@ -84,7 +84,7 @@ class FinancialTransactionServiceImplTest {
                                 .findByAccountIdOrderByTransactionDateDesc(accountId))
                                 .thenReturn(List.of(transaction));
 
-                List<TransactionResponse> result = transactionService.getTransactions(accountId);
+                List<TransactionResponse> result = transactionService.getTransactions(accountId, authentication);
 
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).accountId()).isEqualTo(accountId);
