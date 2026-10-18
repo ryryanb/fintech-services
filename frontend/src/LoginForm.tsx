@@ -194,6 +194,10 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
             window.history.pushState(null, '', '/profile');
             setCurrentPath('/profile');
           }}
+          onAddAccount={() => {
+            window.history.pushState(null, '', '/accounts/new');
+            setCurrentPath('/accounts/new');
+          }}
           onSignOut={() => {
             clearAccessToken();
             setIsAuthenticated(false);
