@@ -3,6 +3,7 @@ package com.ryanbondoc.fintech.transaction.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,38 @@ class FinancialTransactionControllerTest {
 
         @MockitoBean
         private FinancialTransactionService transactionService;
+
+        @Test
+        void shouldGetTransactionsForAccount() throws Exception {
+                UUID accountId = UUID.randomUUID();
+                UUID transactionId = UUID.randomUUID();
+                OffsetDateTime transactionDate = OffsetDateTime.parse("2026-09-09T14:30:00Z");
+                TransactionResponse response = new TransactionResponse(
+                                transactionId,
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "SM Supermarket",
+                                TransactionCategory.GROCERIES,
+                                "Weekly groceries",
+                                TransactionStatus.COMPLETED,
+                                transactionDate);
+
+                when(transactionService.getTransactions(
+                                eq(accountId),
+                                nullable(Authentication.class)))
+                                .thenReturn(List.of(response));
+
+                mockMvc.perform(get("/transactions").param("accountId", accountId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].id").value(transactionId.toString()))
+                                .andExpect(jsonPath("$[0].accountId").value(accountId.toString()))
+                                .andExpect(jsonPath("$[0].merchant").value("SM Supermarket"))
+                                .andExpect(jsonPath("$[0].amount").value(1250.00))
+                                .andExpect(jsonPath("$[0].currency").value("PHP"));
+        }
 
         @Test
         void shouldCreateTransaction() throws Exception {
