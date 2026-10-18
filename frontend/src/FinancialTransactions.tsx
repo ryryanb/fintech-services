@@ -144,6 +144,7 @@ export default function FinancialTransactions({
   const [retry, setRetry] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [spendingPeriod, setSpendingPeriod] = useState<'month' | '30days' | 'all'>('month');
   const [searchTerm, setSearchTerm] = useState('');
 
   const loadTransactions = useCallback(async (signal: AbortSignal) => {
@@ -203,6 +204,59 @@ export default function FinancialTransactions({
       });
     return () => controller.abort();
   }, [loadTransactions, retry]);
+
+  const spendingSummary = useMemo(() => {
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (spendingPeriod === '30days') {
+      periodStart.setTime(now.getTime());
+      periodStart.setDate(periodStart.getDate() - 29);
+      periodStart.setHours(0, 0, 0, 0);
+    }
+
+    const expenses = transactions.filter(transaction => {
+      if (selectedAccountId !== 'all' && transaction.accountId !== selectedAccountId) return false;
+      if (transaction.direction.toUpperCase() !== 'DEBIT') return false;
+      if (transaction.type.toUpperCase() === 'TRANSFER' || (transaction.category ?? 'OTHER').toUpperCase() === 'TRANSFER') return false;
+      if ((transaction.category ?? 'OTHER').toUpperCase() === 'SALARY') return false;
+      if (spendingPeriod !== 'all') {
+        const transactionDate = new Date(transaction.transactionDate);
+        if (Number.isNaN(transactionDate.getTime()) || transactionDate < periodStart || transactionDate > now) return false;
+      }
+      const amount = typeof transaction.amount === 'number' ? transaction.amount : Number(transaction.amount);
+      return Number.isFinite(amount) && amount >= 0;
+    });
+
+    const totals = new Map<string, { currency: string; total: number; categories: Map<string, { amount: number; count: number }> }>();
+    for (const transaction of expenses) {
+      const currency = transaction.currency.toUpperCase();
+      const category = (transaction.category ?? 'OTHER').toUpperCase();
+      const amount = Math.abs(typeof transaction.amount === 'number' ? transaction.amount : Number(transaction.amount));
+      let currencyGroup = totals.get(currency);
+      if (!currencyGroup) {
+        currencyGroup = { currency, total: 0, categories: new Map() };
+        totals.set(currency, currencyGroup);
+      }
+      currencyGroup.total += amount;
+      const categoryGroup = currencyGroup.categories.get(category) ?? { amount: 0, count: 0 };
+      categoryGroup.amount += amount;
+      categoryGroup.count += 1;
+      currencyGroup.categories.set(category, categoryGroup);
+    }
+
+    return Array.from(totals.values()).map(group => ({
+      currency: group.currency,
+      total: group.total,
+      categories: Array.from(group.categories.entries())
+        .map(([category, values]) => ({
+          category,
+          amount: values.amount,
+          count: values.count,
+          share: group.total > 0 ? (values.amount / group.total) * 100 : 0,
+        }))
+        .sort((a, b) => b.amount - a.amount),
+    })).sort((a, b) => a.currency.localeCompare(b.currency));
+  }, [transactions, selectedAccountId, spendingPeriod]);
 
   const filteredTransactions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -265,6 +319,57 @@ export default function FinancialTransactions({
         )}
         {!loading && !error && (
           <>
+            <section className="form-card spending-summary-card" aria-labelledby="spending-summary-title">
+              <div className="spending-summary-heading">
+                <div>
+                  <span className="form-step">SPENDING OVERVIEW</span>
+                  <h2 id="spending-summary-title">Spending by category</h2>
+                  <p>See where your money goes, based on recorded debits. Transfers and income are excluded.</p>
+                </div>
+                <label className="transaction-filter spending-period-filter">
+                  <span>Period</span>
+                  <select value={spendingPeriod} onChange={event => setSpendingPeriod(event.target.value as 'month' | '30days' | 'all')}>
+                    <option value="month">This month</option>
+                    <option value="30days">Last 30 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                </label>
+              </div>
+              {spendingSummary.length === 0 ? (
+                <div className="spending-summary-empty">
+                  <span className="spending-summary-empty-icon" aria-hidden="true">↗</span>
+                  <h3>No spending to summarize yet</h3>
+                  <p>Record an expense for this period, or choose a wider period to see your category breakdown.</p>
+                </div>
+              ) : (
+                <div className="spending-currency-groups">
+                  {spendingSummary.map(group => (
+                    <section className="spending-currency-group" key={group.currency} aria-label={`Spending in ${group.currency}`}>
+                      <div className="spending-total-row">
+                        <span>Total spending <small>{group.currency}</small></span>
+                        <strong>{formatAmount(group.total, group.currency, '')}</strong>
+                      </div>
+                      <div className="spending-category-list">
+                        {group.categories.map(item => (
+                          <div className="spending-category-row" key={item.category}>
+                            <div className="spending-category-label">
+                              <strong>{titleCase(item.category)}</strong>
+                              <span>{item.count} {item.count === 1 ? 'transaction' : 'transactions'} · {item.share.toFixed(1)}%</span>
+                            </div>
+                            <strong className="spending-category-amount">{formatAmount(item.amount, group.currency, '')}</strong>
+                            <div className="spending-category-track" role="progressbar" aria-label={`${titleCase(item.category)} share of spending`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(item.share)}>
+                              <span style={{ width: `${item.share}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
+              <p className="spending-summary-note">Amounts are grouped by currency; different currencies are never combined into one total. Category results depend on the category saved with each transaction.</p>
+            </section>
+
             <div className="transactions-toolbar">
               <label className="transaction-filter">
                 <span>Account</span>
