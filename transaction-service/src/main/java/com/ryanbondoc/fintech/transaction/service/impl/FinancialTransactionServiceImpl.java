@@ -36,7 +36,9 @@ public class FinancialTransactionServiceImpl
 
         @Override
         @Transactional(readOnly = true)
-        public List<TransactionResponse> getTransactions(UUID accountId) {
+        public List<TransactionResponse> getTransactions(UUID accountId, Authentication authentication) {
+
+                transactionAuthorizationService.authorizeAccountAccess(accountId, authentication);
 
                 return transactionRepository
                                 .findByAccountIdOrderByTransactionDateDesc(accountId)
