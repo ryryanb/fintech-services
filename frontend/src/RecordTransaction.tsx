@@ -79,7 +79,7 @@ function localDateTimeValue(date = new Date()): string {
   return local.toISOString().slice(0, 16);
 }
 
-function formatAmount(amount: number | string, currency: string, direction: string): string {
+function formatAmount(amount: number | string, currency: string): string {
   const numeric = typeof amount === 'number' ? amount : Number(amount);
   if (!Number.isFinite(numeric)) return `${currency} ${String(amount)}`;
   try {
@@ -273,11 +273,11 @@ export default function RecordTransaction({
             <div className="record-form-grid">
               <label className="record-field record-field-wide">
                 <span>Financial account <span aria-hidden="true">*</span></span>
-                <select required value={accountId} onChange={event => setAccountId(event.target.value} disabled={accounts.length === 0 || submitting}>
+                <select required value={accountId} onChange={event => setAccountId(event.target.value)} disabled={accounts.length === 0 || submitting}>
                   <option value="">Select an account</option>
                   {accounts.map(account => <option key={account.id} value={account.id}>{account.name} · {account.currency} · {account.institutionName || 'Personal account'}</option>)}
                 </select>
-                {selectedAccount && <small>Current balance: {formatAmount(selectedAccount.balance, selectedAccount.currency, '')}</small>}
+                {selectedAccount && <small>Current balance: {formatAmount(selectedAccount.balance, selectedAccount.currency)}</small>}
               </label>
 
               <label className="record-field">
