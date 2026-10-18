@@ -278,3 +278,24 @@ Customer identity and ownership are enforced by backend services; frontend routi
 5. Attempt to create an account for user B while authenticated as user A, and attempt to create a transaction against user B's account. Both operations must be rejected and must not persist data.
 6. Repeat with no token and with an invalid/expired token; protected endpoints must reject the requests.
 7. Do not use a decoded token, hidden frontend controls, or a customer/account ID supplied by the client as proof of ownership.
+
+
+## FE-020: Add Financial Account
+
+The authenticated **Financial accounts** page includes an **Add account** action that opens the protected `/accounts/new` route. The form supports an account name, account type, three-letter currency code, opening balance, and optional financial institution name.
+
+On submission, the frontend sends `POST /api/accounts` with the bearer token and the fields expected by Account Service's `CreateFinancialAccountRequest`. The customer ID is read from the token to populate the request, but it is not treated as an authorization boundary: Account Service must validate the token and reject a customer ID that does not match the authenticated customer. The page returns to the accounts list only after the API confirms successful creation. Validation, authorization, server, and network errors are shown without reporting a false success.
+
+The form creates a tracking record in this application only. It does not open a real bank account, connect to a financial institution, or transfer money.
+
+### Verify FE-020
+
+1. Start the Auth Service, Account Service, and their required databases; run the frontend using `npm run dev` from `frontend/`.
+2. Sign in and navigate to **Financial accounts**. Verify the **Add account** action is visible.
+3. Select **Add account** and verify the form is displayed at `/accounts/new`. Visiting this route without a signed-in session must redirect to sign-in.
+4. Submit a valid bank account with a name, account type, currency (for example `PHP`), opening balance, and optional institution. Verify `POST /api/accounts` is sent with the bearer token and the created account appears in the refreshed account list.
+5. Verify invalid names, malformed currency codes, negative/non-numeric balances, and overly long institution names are rejected in the UI.
+6. Verify a 401/403 response or network/server failure displays an error and does not navigate away as if creation succeeded.
+7. Verify cancelling returns to the account list without making an API request.
+8. Test with two users: a user must not be able to create an account for another customer's ID. Account Service must reject this request even if a client manually changes the request body.
+9. Run `npm run typecheck` and `npm run build`.

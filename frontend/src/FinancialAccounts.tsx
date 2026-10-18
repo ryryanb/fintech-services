@@ -3,6 +3,7 @@ import { getAccessToken } from './authSession';
 
 type FinancialAccountsProps = {
   onBackToProfile: () => void;
+  onAddAccount: () => void;
   onSignOut: () => void;
 };
 
@@ -61,7 +62,7 @@ function friendlyError(responseStatus: number, context: 'list' | 'detail'): stri
     : 'We could not load your financial accounts. Please try again.';
 }
 
-export default function FinancialAccounts({ onBackToProfile, onSignOut }: FinancialAccountsProps) {
+export default function FinancialAccounts({ onBackToProfile, onAddAccount, onSignOut }: FinancialAccountsProps) {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
@@ -179,10 +180,15 @@ export default function FinancialAccounts({ onBackToProfile, onSignOut }: Financ
           <h2 id="financial-accounts-title">Financial accounts</h2>
           <p>Choose an account to see its current balance and details.</p>
         </div>
-        {!selectedAccount && !loading && !listError && accounts.length > 0 && (
-          <button className="secondary-button" type="button" onClick={() => setListRetry((count) => count + 1)}>
-            Refresh
-          </button>
+        {!selectedAccount && (
+          <div className="transactions-heading-actions">
+            <button className="secondary-button" type="button" onClick={() => setListRetry((count) => count + 1)} disabled={loading}>
+              Refresh
+            </button>
+            <button className="submit-button" type="button" onClick={onAddAccount}>
+              + Add account
+            </button>
+          </div>
         )}
       </div>
 
