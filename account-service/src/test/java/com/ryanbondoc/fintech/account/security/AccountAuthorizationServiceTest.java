@@ -67,6 +67,31 @@ class AccountAuthorizationServiceTest {
                         UUID.randomUUID()));
     }
 
+    @Test
+    void shouldRejectAccessWhenAuthenticationIsMissing() {
+        assertThrows(
+                ForbiddenException.class,
+                () -> authorizationService.getAuthenticatedCustomerId(null));
+    }
+
+    @Test
+    void shouldRejectAccessWhenCustomerIdClaimIsMalformed() {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", UUID.randomUUID().toString())
+                .claim("customerId", "not-a-uuid")
+                .build();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                jwt,
+                null,
+                Collections.emptyList());
+
+        assertThrows(
+                ForbiddenException.class,
+                () -> authorizationService.getAuthenticatedCustomerId(authentication));
+    }
+
     private Authentication authenticationWithCustomerId(UUID customerId) {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")

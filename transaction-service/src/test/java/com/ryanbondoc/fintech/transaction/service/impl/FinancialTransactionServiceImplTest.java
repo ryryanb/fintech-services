@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -431,6 +432,86 @@ class FinancialTransactionServiceImplTest {
                                 .build();
 
                 return new JwtAuthenticationToken(jwt);
+        }
+
+        @Test
+        void shouldNotQueryTransactionsWhenAccountOwnershipIsDenied() {
+                UUID accountId = UUID.randomUUID();
+
+                doThrow(new AccountAccessDeniedException(
+                                "Account does not belong to authenticated customer"))
+                                .when(transactionAuthorizationService)
+                                .authorizeAccountAccess(eq(accountId), eq(authentication));
+
+                assertThatThrownBy(() -> transactionService.getTransactions(accountId, authentication))
+                                .isInstanceOf(AccountAccessDeniedException.class);
+
+                verify(transactionAuthorizationService)
+                                .authorizeAccountAccess(accountId, authentication);
+                verify(transactionRepository, never())
+                                .findByAccountIdOrderByTransactionDateDesc(accountId);
+        }
+
+        @Test
+        void shouldNotSaveTransactionWhenAccountOwnershipIsDenied() {
+                UUID accountId = UUID.randomUUID();
+                JwtAuthenticationToken authenticatedUser = createAuthentication();
+                String bearerToken = "Bearer " + authenticatedUser.getToken().getTokenValue();
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Utility payment",
+                                "merchant",
+                                TransactionCategory.FEES,
+                                null);
+
+                when(accountServiceClient.accountExists(eq(accountId), eq(bearerToken)))
+                                .thenReturn(true);
+                doThrow(new AccountAccessDeniedException(
+                                "Account does not belong to authenticated customer"))
+                                .when(transactionAuthorizationService)
+                                .authorizeAccountAccess(eq(accountId), eq(authenticatedUser));
+
+                assertThatThrownBy(() -> transactionService.createTransaction(request, authenticatedUser))
+                                .isInstanceOf(AccountAccessDeniedException.class);
+
+                verify(transactionAuthorizationService)
+                                .authorizeAccountAccess(accountId, authenticatedUser);
+                verify(transactionRepository, never()).save(any(FinancialTransaction.class));
+        }
+
+        @Test
+        void shouldNotReturnTransactionWhenAccountOwnershipIsDenied() {
+                UUID transactionId = UUID.randomUUID();
+                UUID accountId = UUID.randomUUID();
+                FinancialTransaction transaction = FinancialTransaction.builder()
+                                .id(transactionId)
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("100.00"))
+                                .currency("PHP")
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(OffsetDateTime.now())
+                                .build();
+                Authentication authenticatedUser = org.mockito.Mockito.mock(Authentication.class);
+
+                when(transactionRepository.findById(transactionId))
+                                .thenReturn(Optional.of(transaction));
+                doThrow(new AccountAccessDeniedException(
+                                "Transaction does not belong to authenticated customer"))
+                                .when(transactionAuthorizationService)
+                                .authorizeTransactionAccess(eq(transaction), eq(authenticatedUser));
+
+                assertThatThrownBy(() -> transactionService.getTransaction(transactionId, authenticatedUser))
+                                .isInstanceOf(AccountAccessDeniedException.class);
+
+                verify(transactionAuthorizationService)
+                                .authorizeTransactionAccess(transaction, authenticatedUser);
         }
 
         @Test
