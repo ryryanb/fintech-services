@@ -30,6 +30,7 @@ type FinancialTransactionsProps = {
   onBackToProfile: () => void;
   onViewAccounts: () => void;
   onRecordTransaction: () => void;
+  onViewTransaction: (transactionId: string) => void;
   onSignOut: () => void;
 };
 
@@ -127,6 +128,7 @@ export default function FinancialTransactions({
   onBackToProfile,
   onViewAccounts,
   onRecordTransaction,
+  onViewTransaction,
   onSignOut,
 }: FinancialTransactionsProps) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
@@ -287,7 +289,7 @@ export default function FinancialTransactions({
               <section className="form-card transactions-card" aria-label="Transaction history">
                 <div className="transactions-table-wrap">
                   <table className="transactions-table">
-                    <thead><tr><th scope="col">Activity</th><th scope="col">Account</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col" className="transaction-amount-heading">Amount</th></tr></thead>
+                    <thead><tr><th scope="col">Activity</th><th scope="col">Account</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col" className="transaction-amount-heading">Amount</th><th scope="col"><span className="visually-hidden">Details</span></th></tr></thead>
                     <tbody>
                       {filteredTransactions.map(transaction => {
                         const isCredit = transaction.direction.toUpperCase() === 'CREDIT';
@@ -297,13 +299,14 @@ export default function FinancialTransactions({
                             <td>
                               <div className="transaction-activity">
                                 <span className={isCredit ? 'transaction-symbol transaction-symbol-credit' : 'transaction-symbol'} aria-hidden="true">{isCredit ? '↓' : '↑'}</span>
-                                <span className="transaction-activity-copy"><strong>{activityTitle}</strong><small>{titleCase(transaction.category)} · {titleCase(transaction.type)} / {titleCase(transaction.direction)}</small>{transaction.description && transaction.description !== activityTitle && <small>{transaction.description}</small>}</span>
+                                <span className="transaction-activity-copy"><button className="transaction-detail-link" type="button" onClick={() => onViewTransaction(transaction.id)}>{activityTitle}</button><small>{titleCase(transaction.category)} · {titleCase(transaction.type)} / {titleCase(transaction.direction)}</small>{transaction.description && transaction.description !== activityTitle && <small>{transaction.description}</small>}</span>
                               </div>
                             </td>
                             <td><span className="transaction-account-name">{transaction.accountName}</span></td>
                             <td><time dateTime={transaction.transactionDate}>{formatDate(transaction.transactionDate)}</time></td>
                             <td><span className={transaction.status.toLowerCase() === 'completed' ? 'transaction-status transaction-status-complete' : 'transaction-status'}>{titleCase(transaction.status)}</span></td>
                             <td className={isCredit ? 'transaction-amount transaction-amount-credit' : 'transaction-amount'}>{formatAmount(transaction.amount, transaction.currency, transaction.direction)}</td>
+                            <td><button className="transaction-view-details" type="button" onClick={() => onViewTransaction(transaction.id)} aria-label={`View details for ${activityTitle}`}>Details <span aria-hidden="true">→</span></button></td>
                           </tr>
                         );
                       })}
