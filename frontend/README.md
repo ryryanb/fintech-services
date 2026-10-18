@@ -247,3 +247,14 @@ The form captures account, type, direction, positive amount, category, optional 
 5. Verify missing/invalid amounts, optional fields, category and direction selections, and date/time.
 6. Verify no-active-account, unauthenticated, forbidden-account, validation-error, and service-unavailable cases.
 7. Confirm that the account balance is unchanged because this feature records history only.
+
+## ACC-002A: View Own Financial Accounts
+
+The Account Service derives the customer ID for `GET /accounts` from the validated bearer token. The endpoint no longer accepts a customer ID as a query parameter, so clients cannot select another customer's account list by changing a request parameter. The frontend sends the access token and requests `/api/accounts` without decoding or supplying customer identity. Account detail and balance endpoints also scope database lookups by the authenticated customer ID.
+
+### Verify ACC-002A
+
+1. Sign in as customer A and request `GET /accounts` with customer A's bearer token. Confirm that only customer A's accounts are returned.
+2. Add a `customerId` query parameter containing customer B's ID to the same request. Confirm the response still contains only customer A's accounts.
+3. Request an account detail or balance using an account ID belonging to customer B. Confirm the service does not return that account's data.
+4. Call `GET /accounts` without a valid bearer token. Confirm access is rejected by Spring Security.
