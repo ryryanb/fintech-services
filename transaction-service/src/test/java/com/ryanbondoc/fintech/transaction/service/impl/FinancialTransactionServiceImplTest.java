@@ -166,6 +166,37 @@ class FinancialTransactionServiceImplTest {
         }
 
         @Test
+        void shouldAutomaticallyCategorizeTransactionWhenCategoryIsOmitted() {
+                UUID accountId = UUID.randomUUID();
+                JwtAuthenticationToken authentication = createAuthentication();
+                String bearerToken = "Bearer " + authentication.getToken().getTokenValue();
+
+                when(accountServiceClient.accountExists(eq(accountId), eq(bearerToken))).thenReturn(true);
+
+                TransactionRequest request = new TransactionRequest(
+                                accountId,
+                                TransactionType.PAYMENT,
+                                TransactionDirection.DEBIT,
+                                new BigDecimal("1250.00"),
+                                "PHP",
+                                "Weekly groceries",
+                                "SM Supermarket",
+                                null,
+                                null);
+
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> {
+                                        FinancialTransaction transaction = invocation.getArgument(0);
+                                        transaction.setId(UUID.randomUUID());
+                                        return transaction;
+                                });
+
+                TransactionResponse result = transactionService.createTransaction(request, authentication);
+
+                assertThat(result.category()).isEqualTo(TransactionCategory.GROCERIES);
+        }
+
+        @Test
         void shouldUseCurrentTimeWhenTransactionDateIsNotProvided() {
 
                 UUID accountId = UUID.randomUUID();
