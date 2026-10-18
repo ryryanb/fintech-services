@@ -337,3 +337,20 @@ The saved category is returned in the transaction response and shown in transact
 7. Open transaction history, use the **Category** filter, and verify only transactions in the selected category remain visible. Clear filters and verify the full list returns.
 8. Open a transaction's details and verify the saved category is displayed there.
 9. Run `npm run typecheck` and `npm run build` in `frontend/`, and run the Transaction Service tests with `./mvnw -pl transaction-service test` from the repository root (or the project's documented Maven wrapper command).
+
+
+## SPEND-004: View Spending by Category
+
+The Transactions page includes a spending overview above transaction history. It summarizes debit transactions by their saved category, with each category showing its total, share of spending, and transaction count. The period selector supports **This month**, **Last 30 days**, and **All time**; the selected account filter also applies to the summary. Transfers and salary-category entries are excluded from spending totals. When accounts use different currencies, totals are calculated and displayed separately per currency rather than adding incomparable amounts together. Categories are based on the category stored on each transaction, including the deterministic suggestions from SPEND-001.
+
+### Verify SPEND-004
+
+1. Sign in and open **Transactions**.
+2. Record several debit transactions in different categories, ideally with different amounts and dates.
+3. Confirm **Spending by category** shows a total and a category row for each category represented by eligible transactions. Check that percentages are based on the total for that currency and add up to approximately 100%.
+4. Change the period between **This month**, **Last 30 days**, and **All time** and confirm the summary changes to match the selected date range.
+5. Select a single account in the existing account filter and confirm the summary only includes that account.
+6. Record a credit/income transaction and a transfer; verify neither increases spending totals.
+7. If transactions exist in more than one currency, verify each currency has a separate total.
+8. Verify the empty summary message when no eligible expenses exist in the selected period.
+9. Run `npm run typecheck` and `npm run build` from `frontend/`.
