@@ -3,6 +3,7 @@ import { clearAccessToken, setAccessToken } from './authSession';
 import UserProfile from './UserProfile';
 import ProtectedRoute from './ProtectedRoute';
 import FinancialAccounts from './FinancialAccounts';
+import AddFinancialAccount from './AddFinancialAccount';
 import FinancialTransactions from './FinancialTransactions';
 import RecordTransaction from './RecordTransaction';
 
@@ -43,7 +44,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   useEffect(() => {
     function syncPath() {
       const path = window.location.pathname;
-      if (!isAuthenticated && ['/profile', '/accounts', '/transactions', '/transactions/new'].includes(path)) {
+      if (!isAuthenticated && ['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new'].includes(path)) {
         window.history.replaceState(null, '', '/login');
         setCurrentPath('/login');
         return;
@@ -154,6 +155,25 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
           onRecordTransaction={() => {
             window.history.pushState(null, '', '/transactions/new');
             setCurrentPath('/transactions/new');
+          }}
+          onSignOut={() => {
+            clearAccessToken();
+            setIsAuthenticated(false);
+            window.history.replaceState(null, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      </ProtectedRoute>
+    );
+  }
+
+  if (isAuthenticated && currentPath === '/accounts/new') {
+    return (
+      <ProtectedRoute isAuthenticated={isAuthenticated}>
+        <AddFinancialAccount
+          onBackToAccounts={() => {
+            window.history.pushState(null, '', '/accounts');
+            setCurrentPath('/accounts');
           }}
           onSignOut={() => {
             clearAccessToken();
