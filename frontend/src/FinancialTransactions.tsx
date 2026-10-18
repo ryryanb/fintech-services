@@ -29,6 +29,7 @@ type FinancialTransaction = {
 type FinancialTransactionsProps = {
   onBackToProfile: () => void;
   onViewAccounts: () => void;
+  onRecordTransaction: () => void;
   onSignOut: () => void;
 };
 
@@ -125,6 +126,7 @@ function responseError(status: number): string {
 export default function FinancialTransactions({
   onBackToProfile,
   onViewAccounts,
+  onRecordTransaction,
   onSignOut,
 }: FinancialTransactionsProps) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
@@ -220,6 +222,7 @@ export default function FinancialTransactions({
         <nav className="topbar-prompt profile-nav-actions" aria-label="Main navigation">
           <button className="text-link" type="button" onClick={onBackToProfile}>Profile</button>
           <button className="text-link" type="button" onClick={onViewAccounts}>Accounts</button>
+          <button className="text-link" type="button" onClick={onRecordTransaction}>Record transaction</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </nav>
       </header>
@@ -232,7 +235,7 @@ export default function FinancialTransactions({
             <p className="intro-copy">A clear view of your recent financial activity across your accounts.</p>
           </div>
           {!loading && !error && (
-            <button className="secondary-button" type="button" onClick={() => setRetry(count => count + 1)}>Refresh activity</button>
+            <div className="transactions-heading-actions"><button className="secondary-button" type="button" onClick={() => setRetry(count => count + 1)}>Refresh activity</button><button className="submit-button transaction-record-button" type="button" onClick={onRecordTransaction}>Record transaction</button></div>
           )}
         </div>
 

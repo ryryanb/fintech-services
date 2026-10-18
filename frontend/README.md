@@ -228,3 +228,22 @@ The view supports account filtering, text search, refresh, loading and retry sta
 5. Filter by account and search by merchant, category, or description.
 6. Verify the empty-history state, refresh action, and friendly error/retry states.
 7. Test that requesting another customer's account ID directly from the Transaction Service is rejected by backend authorization.
+
+
+## FE-030: Record Transaction
+
+From the signed-in profile, open **Transactions**, then choose **Record transaction**. The form loads active accounts from the authenticated Account Service and uses the selected account's currency. It submits the transaction to `POST /api/transactions`, proxied to Transaction Service on port `8087`.
+
+The form captures account, type, direction, positive amount, category, optional merchant/payee and description, and transaction date/time. It validates the amount and text limits before submitting and provides loading, validation, service-error, and success states. The Transaction Service assigns the saved transaction ID and status. A successful record can then be checked in transaction history.
+
+**Important:** This story records a financial activity entry in the application. It does not execute a real bank transfer, debit a bank account, or update the account's balance. The backend must continue to validate the bearer token and enforce ownership of the selected account; client-side account filtering is not an authorization control.
+
+### Verify FE-030
+
+1. Start Auth, Customer, Account, and Transaction Services with their databases.
+2. Run `npm ci`, `npm run typecheck`, and `npm run build` from `frontend/`, then start `npm run dev`.
+3. Sign in, navigate to **Transactions**, and choose **Record transaction**.
+4. Record a valid entry for an active account; verify the success message and that it appears in transaction history.
+5. Verify missing/invalid amounts, optional fields, category and direction selections, and date/time.
+6. Verify no-active-account, unauthenticated, forbidden-account, validation-error, and service-unavailable cases.
+7. Confirm that the account balance is unchanged because this feature records history only.
