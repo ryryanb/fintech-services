@@ -30,6 +30,14 @@ The project focuses on building a realistic financial-services backend with clea
 
 ![Transactions](docs/images/transactions_ui.png)
 
+## Record Transaction
+
+![Record Transaction](docs/images/record_transaction.png)
+
+## View Spending by Category
+
+![View Spending](docs/images/transaction_by_category.png)
+
 ## Auth Service Swagger UI
 
 ![Auth Service](docs/images/auth_service.png)
