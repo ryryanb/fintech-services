@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ryanbondoc.fintech.account.dto.AccountBalanceResponse;
@@ -45,13 +44,12 @@ public class FinancialAccountController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "Retrieve accounts", description = "Retrieve accounts of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Retrieve accounts", description = "Retrieve only the financial accounts belonging to the authenticated customer. Customer identity is derived from the validated bearer token.", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping
     public ResponseEntity<List<FinancialAccountResponse>> getAccounts(
-            @RequestParam UUID customerId,
             Authentication authentication) {
 
-        accountAuthorizationService.requireCustomerAccess(authentication, customerId);
+        UUID customerId = accountAuthorizationService.getAuthenticatedCustomerId(authentication);
         return ResponseEntity.ok(financialAccountService.getAccounts(customerId));
     }
 
