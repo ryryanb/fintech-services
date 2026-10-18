@@ -6,6 +6,7 @@ import FinancialAccounts from './FinancialAccounts';
 import AddFinancialAccount from './AddFinancialAccount';
 import FinancialTransactions from './FinancialTransactions';
 import RecordTransaction from './RecordTransaction';
+import TransactionDetails from './TransactionDetails';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -116,6 +117,32 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     }
   }
 
+
+  const transactionDetailsMatch = currentPath.match(/^\/transactions\/([^/]+)$/);
+
+  if (isAuthenticated && transactionDetailsMatch && transactionDetailsMatch[1] !== 'new') {
+    return (
+      <ProtectedRoute isAuthenticated={isAuthenticated}>
+        <TransactionDetails
+          transactionId={decodeURIComponent(transactionDetailsMatch[1])}
+          onBackToTransactions={() => {
+            window.history.pushState(null, '', '/transactions');
+            setCurrentPath('/transactions');
+          }}
+          onViewAccounts={() => {
+            window.history.pushState(null, '', '/accounts');
+            setCurrentPath('/accounts');
+          }}
+          onSignOut={() => {
+            clearAccessToken();
+            setIsAuthenticated(false);
+            window.history.replaceState(null, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      </ProtectedRoute>
+    );
+  }
 
   if (isAuthenticated && currentPath === '/transactions/new') {
     return (
