@@ -186,7 +186,7 @@ export default function RecordTransaction({
           amount: numericAmount,
           currency: selectedAccount?.currency,
           merchant: merchant.trim() || null,
-          category,
+          category: category || null,
           description: description.trim() || null,
           transactionDate: transactionDate ? new Date(transactionDate).toISOString() : null,
         }),
