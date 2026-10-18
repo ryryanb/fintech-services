@@ -73,7 +73,11 @@ public class FinancialTransactionServiceImpl
                                 .category(
                                                 request.category() != null
                                                                 ? request.category()
-                                                                : TransactionCategory.OTHER)
+                                                                : TransactionCategorizer.categorize(
+                                                                                request.merchant(),
+                                                                                request.description(),
+                                                                                request.type(),
+                                                                                request.direction()))
                                 .description(request.description())
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(

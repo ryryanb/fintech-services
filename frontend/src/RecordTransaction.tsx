@@ -85,7 +85,7 @@ export default function RecordTransaction({
   const [type, setType] = useState<TransactionType>('PAYMENT');
   const [direction, setDirection] = useState<TransactionDirection>('DEBIT');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<TransactionCategory>('OTHER');
+  const [category, setCategory] = useState<TransactionCategory | ''>('');
   const [merchant, setMerchant] = useState('');
   const [description, setDescription] = useState('');
   const [transactionDate, setTransactionDate] = useState(localDateTimeValue());
@@ -186,7 +186,7 @@ export default function RecordTransaction({
           amount: numericAmount,
           currency: selectedAccount?.currency,
           merchant: merchant.trim() || null,
-          category,
+          category: category || null,
           description: description.trim() || null,
           transactionDate: transactionDate ? new Date(transactionDate).toISOString() : null,
         }),
@@ -210,8 +210,9 @@ export default function RecordTransaction({
         throw new Error('The service returned an unexpected response. Check transaction history before retrying.');
       }
       const saved = payload as TransactionResponse;
-      setSuccess(`Transaction recorded successfully (${saved.id}).`);
+      setSuccess(`Transaction recorded successfully as ${titleCase(saved.category)} (${saved.id}).`);
       setAmount('');
+      setCategory('');
       setMerchant('');
       setDescription('');
       setTransactionDate(localDateTimeValue());
@@ -285,10 +286,12 @@ export default function RecordTransaction({
               </label>
 
               <label className="record-field">
-                <span>Category <span aria-hidden="true">*</span></span>
-                <select required value={category} onChange={event => setCategory(event.target.value as TransactionCategory)} disabled={submitting}>
+                <span>Category</span>
+                <select value={category} onChange={event => setCategory(event.target.value as TransactionCategory | '')} disabled={submitting}>
+                  <option value="">Auto-categorize from merchant and description</option>
                   {categories.map(item => <option key={item} value={item}>{titleCase(item)}</option>)}
                 </select>
+                <small>Choose a category yourself, or let the service suggest one from the merchant and description. You can review the saved category in transaction history.</small>
               </label>
 
               <label className="record-field record-field-wide">
