@@ -3,6 +3,7 @@ import { clearAccessToken, setAccessToken } from './authSession';
 import UserProfile from './UserProfile';
 import ProtectedRoute from './ProtectedRoute';
 import FinancialAccounts from './FinancialAccounts';
+import FinancialTransactions from './FinancialTransactions';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -41,7 +42,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   useEffect(() => {
     function syncPath() {
       const path = window.location.pathname;
-      if (!isAuthenticated && ['/profile', '/accounts'].includes(path)) {
+      if (!isAuthenticated && ['/profile', '/accounts', '/transactions'].includes(path)) {
         window.history.replaceState(null, '', '/login');
         setCurrentPath('/login');
         return;
@@ -111,6 +112,33 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (isAuthenticated && currentPath === '/transactions') {
+    return (
+      <ProtectedRoute isAuthenticated={isAuthenticated}>
+        <FinancialTransactions
+          onBackToProfile={() => {
+            window.history.pushState(null, '', '/profile');
+            setCurrentPath('/profile');
+          }}
+          onViewAccounts={() => {
+            window.history.pushState(null, '', '/accounts');
+            setCurrentPath('/accounts');
+          }}
+          onViewTransactions={() => {
+            window.history.pushState(null, '', '/transactions');
+            setCurrentPath('/transactions');
+          }}
+          onSignOut={() => {
+            clearAccessToken();
+            setIsAuthenticated(false);
+            window.history.replaceState(null, '', '/login');
+            setCurrentPath('/login');
+          }}
+        />
+      </ProtectedRoute>
+    );
   }
 
   if (isAuthenticated && currentPath === '/accounts') {
