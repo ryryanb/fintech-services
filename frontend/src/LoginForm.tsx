@@ -45,7 +45,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   useEffect(() => {
     function syncPath() {
       const path = window.location.pathname;
-      if (!isAuthenticated && ['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new'].includes(path)) {
+      if (!isAuthenticated && (['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new'].includes(path) || /^\/transactions\/[^/]+$/.test(path))) {
         window.history.replaceState(null, '', '/login');
         setCurrentPath('/login');
         return;
