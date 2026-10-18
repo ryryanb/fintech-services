@@ -1,6 +1,7 @@
 package com.ryanbondoc.fintech.account.controller;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,4 +68,33 @@ class FinancialAccountControllerTest {
 
         verify(financialAccountService).getAccount(accountId, customerId);
     }
+    @Test
+    void shouldListOnlyAccountsForAuthenticatedCustomerWithoutClientSuppliedCustomerId() throws Exception {
+        UUID customerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        FinancialAccountResponse response = new FinancialAccountResponse(
+                accountId,
+                customerId,
+                "My Checking",
+                AccountType.BANK_ACCOUNT,
+                "PHP",
+                new BigDecimal("2500.00"),
+                "FinTech Bank",
+                AccountStatus.ACTIVE);
+
+        when(accountAuthorizationService.getAuthenticatedCustomerId(nullable(org.springframework.security.core.Authentication.class)))
+                .thenReturn(customerId);
+        when(financialAccountService.getAccounts(customerId)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/accounts")
+                        .param("customerId", UUID.randomUUID().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(accountId.toString()))
+                .andExpect(jsonPath("$[0].customerId").value(customerId.toString()));
+
+        verify(financialAccountService).getAccounts(customerId);
+        verify(accountAuthorizationService).getAuthenticatedCustomerId(nullable(org.springframework.security.core.Authentication.class));
+    }
+
 }

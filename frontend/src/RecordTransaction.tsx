@@ -45,20 +45,6 @@ const categories: TransactionCategory[] = [
   'TRANSFER', 'FEES', 'OTHER',
 ];
 
-function customerIdFromToken(token: string): string | null {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), '='));
-    const claims: unknown = JSON.parse(decoded);
-    if (typeof claims !== 'object' || claims === null || !('customerId' in claims)) return null;
-    return typeof claims.customerId === 'string' && claims.customerId ? claims.customerId : null;
-  } catch {
-    return null;
-  }
-}
-
 function isAccount(value: unknown): value is FinancialAccount {
   if (typeof value !== 'object' || value === null) return false;
   const item = value as Record<string, unknown>;
@@ -112,14 +98,13 @@ export default function RecordTransaction({
     const controller = new AbortController();
     async function loadAccounts() {
       const token = getAccessToken();
-      const customerId = token ? customerIdFromToken(token) : null;
-      if (!token || !customerId) {
-        setError('Your session has ended or your customer profile could not be identified. Please sign in again.');
+      if (!token) {
+        setError('Your session has ended. Please sign in again.');
         setLoadingAccounts(false);
         return;
       }
       try {
-        const response = await fetch(`/api/accounts?customerId=${encodeURIComponent(customerId)}`, {
+        const response = await fetch('/api/accounts', {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
           signal: controller.signal,
         });
