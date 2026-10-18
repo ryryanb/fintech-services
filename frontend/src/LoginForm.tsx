@@ -126,10 +126,6 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
             window.history.pushState(null, '', '/accounts');
             setCurrentPath('/accounts');
           }}
-          onViewTransactions={() => {
-            window.history.pushState(null, '', '/transactions');
-            setCurrentPath('/transactions');
-          }}
           onSignOut={() => {
             clearAccessToken();
             setIsAuthenticated(false);
@@ -173,6 +169,10 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
           onViewAccounts={() => {
             window.history.pushState(null, '', '/accounts');
             setCurrentPath('/accounts');
+          }}
+          onViewTransactions={() => {
+            window.history.pushState(null, '', '/transactions');
+            setCurrentPath('/transactions');
           }}
         />
       </ProtectedRoute>
