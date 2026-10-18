@@ -47,9 +47,6 @@ function getCustomerIdFromToken(token: string): string | null {
   }
 }
 
-function titleCase(value: string): string {
-  return value.toLowerCase().split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-}
 
 export default function AddFinancialAccount({ onBackToAccounts, onSignOut }: AddFinancialAccountProps) {
   const [name, setName] = useState('');
