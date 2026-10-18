@@ -34,6 +34,12 @@ type FinancialTransactionsProps = {
   onSignOut: () => void;
 };
 
+const transactionCategories = [
+  'GROCERIES', 'DINING', 'TRANSPORTATION', 'SHOPPING', 'UTILITIES',
+  'ENTERTAINMENT', 'HEALTHCARE', 'TRAVEL', 'HOUSING', 'SALARY',
+  'TRANSFER', 'FEES', 'OTHER',
+] as const;
+
 type TransactionRow = FinancialTransaction & {
   accountName: string;
 };
@@ -137,6 +143,7 @@ export default function FinancialTransactions({
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const loadTransactions = useCallback(async (signal: AbortSignal) => {
@@ -201,6 +208,7 @@ export default function FinancialTransactions({
     const query = searchTerm.trim().toLowerCase();
     return transactions.filter(transaction => {
       const matchesAccount = selectedAccountId === 'all' || transaction.accountId === selectedAccountId;
+      const matchesCategory = selectedCategory === 'all' || (transaction.category ?? 'OTHER') === selectedCategory;
       const haystack = [
         transaction.merchant,
         transaction.description,
@@ -210,9 +218,9 @@ export default function FinancialTransactions({
         transaction.status,
         transaction.accountName,
       ].filter(Boolean).join(' ').toLowerCase();
-      return matchesAccount && (!query || haystack.includes(query));
+      return matchesAccount && matchesCategory && (!query || haystack.includes(query));
     });
-  }, [transactions, selectedAccountId, searchTerm]);
+  }, [transactions, selectedAccountId, selectedCategory, searchTerm]);
 
   return (
     <main className="page-shell transactions-page">
@@ -265,6 +273,13 @@ export default function FinancialTransactions({
                   {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
                 </select>
               </label>
+              <label className="transaction-filter">
+                <span>Category</span>
+                <select value={selectedCategory} onChange={event => setSelectedCategory(event.target.value)}>
+                  <option value="all">All categories</option>
+                  {transactionCategories.map(category => <option key={category} value={category}>{titleCase(category)}</option>)}
+                </select>
+              </label>
               <label className="transaction-search">
                 <span>Search activity</span>
                 <input value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Merchant, category, description…" />
@@ -281,8 +296,8 @@ export default function FinancialTransactions({
                     ? 'When activity is recorded on your accounts, it will appear here.'
                     : 'Try a different account or search term.'}
                 </p>
-                {(selectedAccountId !== 'all' || searchTerm) && (
-                  <button className="secondary-button" type="button" onClick={() => { setSelectedAccountId('all'); setSearchTerm(''); }}>Clear filters</button>
+                {(selectedAccountId !== 'all' || selectedCategory !== 'all' || searchTerm) && (
+                  <button className="secondary-button" type="button" onClick={() => { setSelectedAccountId('all'); setSelectedCategory('all'); setSearchTerm(''); }}>Clear filters</button>
                 )}
               </div>
             ) : (
