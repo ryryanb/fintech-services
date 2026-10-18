@@ -100,7 +100,7 @@ class FinancialTransactionServiceImplTest {
                                 .findByAccountIdOrderByTransactionDateDesc(accountId))
                                 .thenReturn(List.of());
 
-                List<TransactionResponse> result = transactionService.getTransactions(accountId);
+                List<TransactionResponse> result = transactionService.getTransactions(accountId, authentication);
 
                 assertThat(result).isEmpty();
         }
