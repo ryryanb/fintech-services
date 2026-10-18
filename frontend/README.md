@@ -318,3 +318,22 @@ The page includes loading, retry, not-found, unauthorized, and service-error sta
 7. Test a nonexistent transaction ID and a transaction belonging to another customer. The backend must return an appropriate not-found/forbidden response without leaking transaction data; the frontend should display a safe error.
 8. Stop Transaction Service and verify the UI displays a helpful error and retry action. If account lookup fails while the transaction lookup succeeds, transaction details should still display.
 9. Run `npm run typecheck` and `npm run build` from `frontend/`.
+
+
+## SPEND-001: Categorize Transactions
+
+New transaction entries can be categorized automatically or assigned a category explicitly. When **Auto-categorize from merchant and description** is selected on the Record transaction form, Transaction Service applies deterministic keyword rules to the merchant, description, transaction type, and direction. Recognized examples include supermarkets/groceries, restaurants and food delivery, public transport/rides, utilities, housing, healthcare, travel, entertainment subscriptions, salary/payroll, bank fees, shopping, and transfers. If the rules do not have enough information, the transaction is saved as `OTHER`. A category selected manually by the user takes precedence over the automatic rules.
+
+The saved category is returned in the transaction response and shown in transaction history and transaction details. Transaction history also has a category filter so users can focus on one spending/income category at a time. The categorizer is deterministic and local to Transaction Service; it does not call an external AI service or share transaction data with a third party. Keyword matches are heuristic, so users should review suggestions and select a category manually when a merchant is ambiguous.
+
+### Verify SPEND-001
+
+1. Start Transaction Service and its database, along with Auth Service, Account Service, and the frontend.
+2. Open **Record transaction** and leave Category on **Auto-categorize from merchant and description**.
+3. Record a payment with merchant `SM Supermarket` and description `Weekly groceries`; verify the saved category is **Groceries**.
+4. Try merchant `Meralco` and description `Monthly electric bill`; verify **Utilities**. Try `Netflix` to verify **Entertainment**, and a transaction of type **Transfer** to verify **Transfer**.
+5. Record a transaction with an unrecognized merchant/description and verify it falls back to **Other**.
+6. Repeat a recognizable transaction after manually selecting a different category and verify the manual selection is preserved.
+7. Open transaction history, use the **Category** filter, and verify only transactions in the selected category remain visible. Clear filters and verify the full list returns.
+8. Open a transaction's details and verify the saved category is displayed there.
+9. Run `npm run typecheck` and `npm run build` in `frontend/`, and run the Transaction Service tests with `./mvnw -pl transaction-service test` from the repository root (or the project's documented Maven wrapper command).
