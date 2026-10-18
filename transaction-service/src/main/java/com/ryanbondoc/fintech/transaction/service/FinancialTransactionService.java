@@ -10,7 +10,7 @@ import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 
 public interface FinancialTransactionService {
 
-    List<TransactionResponse> getTransactions(UUID accountId);
+    List<TransactionResponse> getTransactions(UUID accountId, Authentication authentication);
 
     TransactionResponse createTransaction(TransactionRequest request, Authentication authentication);
 

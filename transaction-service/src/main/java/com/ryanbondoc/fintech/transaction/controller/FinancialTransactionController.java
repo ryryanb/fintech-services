@@ -36,9 +36,10 @@ public class FinancialTransactionController {
     @Operation(summary = "Get transactions", description = "Get transactions of a specific account of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping
     public List<TransactionResponse> getTransactions(
-            @RequestParam UUID accountId) {
+            @RequestParam UUID accountId,
+            Authentication authentication) {
 
-        return transactionService.getTransactions(accountId);
+        return transactionService.getTransactions(accountId, authentication);
     }
 
     @Operation(summary = "Create a financial transaction", description = "Creates a transaction for an account owned by the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
