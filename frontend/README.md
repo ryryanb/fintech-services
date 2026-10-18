@@ -209,3 +209,22 @@ The screen includes loading, empty, retry, and friendly error states. The bearer
 5. Confirm empty-account, service-unavailable, unauthorized, and not-found states show a useful message and retry where appropriate.
 6. Verify an account owned by another customer cannot be retrieved using the signed-in user's token; this must be enforced by Account Service, not the frontend.
 7. Run `npm run typecheck` and `npm run build`.
+
+
+## FE-028: Display Transactions
+
+After signing in, select **Transactions** from the profile page. The frontend loads the authenticated customer's accounts through `GET /api/accounts?customerId={customerId}`, then requests `GET /api/transactions?accountId={accountId}` for each returned account. It combines the results into one newest-first activity list with merchant/description, category, account, transaction date, status, and signed amount.
+
+The view supports account filtering, text search, refresh, loading and retry states, and a helpful empty state. Credits are displayed with a plus sign and debits with a minus sign. The Vite proxy forwards `/api/transactions` to Transaction Service on port `8087`.
+
+**Security boundary:** The browser only requests transactions for accounts returned by Account Service, but that is not an authorization guarantee. Transaction Service must validate the bearer token and enforce account ownership on `GET /transactions?accountId=...`. Do not rely on a customer ID or account ID supplied by the browser to authorize access.
+
+### Verify FE-028
+
+1. Start Auth, Customer, Account, and Transaction Services with their databases.
+2. Run `npm ci`, `npm run typecheck`, `npm run build`, then `npm run dev` from `frontend/`.
+3. Sign in and select **Transactions** from the profile page.
+4. Confirm transactions from all of the signed-in customer's accounts appear newest first with the correct amount, currency, direction, status, and date.
+5. Filter by account and search by merchant, category, or description.
+6. Verify the empty-history state, refresh action, and friendly error/retry states.
+7. Test that requesting another customer's account ID directly from the Transaction Service is rejected by backend authorization.
