@@ -624,3 +624,38 @@ form { display: grid; gap: 18px; }
   .transactions-table td, .transactions-table th { padding-right: 10px; padding-left: 10px; }
   .transaction-view-details { padding: 6px; }
 }
+
+
+/* SPEND-004: spending summary by category */
+.spending-summary-card { max-width: none; margin-bottom: 20px; padding: 26px; }
+.spending-summary-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+.spending-summary-heading h2 { margin: 7px 0 6px; color: var(--ink); font: 700 20px 'Manrope', sans-serif; letter-spacing: -.4px; }
+.spending-summary-heading p { max-width: 590px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.spending-period-filter { min-width: 150px; }
+.spending-currency-groups { display: grid; gap: 18px; }
+.spending-currency-group { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fcfcff; }
+.spending-total-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 15px; border-bottom: 1px solid var(--line); }
+.spending-total-row > span { color: var(--muted); font-size: 12px; }
+.spending-total-row small { margin-left: 5px; color: #929bad; font-size: 10px; }
+.spending-total-row > strong { color: #1e2d48; font: 800 21px 'Manrope', sans-serif; overflow-wrap: anywhere; text-align: right; }
+.spending-category-list { display: grid; gap: 17px; padding-top: 17px; }
+.spending-category-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; }
+.spending-category-label { display: grid; gap: 4px; min-width: 0; }
+.spending-category-label strong { color: #293750; font-size: 12px; }
+.spending-category-label span { color: var(--muted); font-size: 10px; }
+.spending-category-amount { color: #293750; font-size: 12px; text-align: right; overflow-wrap: anywhere; }
+.spending-category-track { grid-column: 1 / -1; height: 7px; overflow: hidden; border-radius: 999px; background: #e9ecf7; }
+.spending-category-track span { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: linear-gradient(90deg, #5366e8, #8a96ff); }
+.spending-summary-empty { padding: 28px 12px 20px; text-align: center; }
+.spending-summary-empty-icon { display: grid; place-items: center; width: 43px; height: 43px; margin: 0 auto 12px; border-radius: 13px; background: #edf0ff; color: var(--accent); font-size: 23px; }
+.spending-summary-empty h3 { margin: 0 0 7px; color: var(--ink); font: 700 15px 'Manrope', sans-serif; }
+.spending-summary-empty p, .spending-summary-note { color: var(--muted); font-size: 10px; line-height: 1.7; }
+.spending-summary-empty p { max-width: 390px; margin: 0 auto; }
+.spending-summary-note { margin: 18px 0 0; }
+@media (max-width: 600px) {
+  .spending-summary-card { padding: 21px 17px; }
+  .spending-summary-heading { display: grid; }
+  .spending-period-filter { width: 100%; }
+  .spending-currency-group { padding: 14px; }
+  .spending-total-row > strong { font-size: 18px; }
+}
