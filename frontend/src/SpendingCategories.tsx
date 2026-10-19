@@ -28,7 +28,7 @@ export default function SpendingCategories({ onBack, onSignOut }: SpendingCatego
       if (!token) { setError('Your session has ended. Please sign in again.'); setLoading(false); return; }
       try {
         const response = await fetch('/api/categories', {
-          headers: { Authorization: \`Bearer \${token}\`, Accept: 'application/json' }, signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, signal: controller.signal,
         });
         if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'Your session is no longer valid. Please sign in again.' : 'We could not load your custom categories. Please try again.');
         const payload: unknown = await response.json();
@@ -54,7 +54,7 @@ export default function SpendingCategories({ onBack, onSignOut }: SpendingCatego
     try {
       const response = await fetch('/api/categories', {
         method: 'POST',
-        headers: { Authorization: \`Bearer \${token}\`, 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ name: normalized }),
       });
       const payload: unknown = await response.json().catch(() => null);
@@ -65,24 +65,24 @@ export default function SpendingCategories({ onBack, onSignOut }: SpendingCatego
       }
       if (!isCategory(payload)) throw new Error('The service returned an unexpected category response.');
       setCategories(current => [...current, payload].sort((a, b) => a.name.localeCompare(b.name)));
-      setName(''); setNotice(\`Created “\${payload.name}”. It is now available when recording a transaction.\`);
+      setName(''); setNotice(`Created “${payload.name}”. It is now available when recording a transaction.`);
     } catch (cause) {
       setError(cause instanceof TypeError ? 'Unable to reach the Transaction Service.' : cause instanceof Error ? cause.message : 'Unable to create category.');
     } finally { setSaving(false); }
   }
 
   async function deleteCategory(category: Category) {
-    if (!window.confirm(\`Delete the custom category “\${category.name}”? Existing transactions will keep their saved category label.\`)) return;
+    if (!window.confirm(`Delete the custom category “${category.name}”? Existing transactions will keep their saved category label.`)) return;
     const token = getAccessToken();
     if (!token) { setError('Your session has ended. Please sign in again.'); return; }
     setError(''); setNotice('');
     try {
-      const response = await fetch(\`/api/categories/\${encodeURIComponent(category.id)}\`, {
-        method: 'DELETE', headers: { Authorization: \`Bearer \${token}\`, Accept: 'application/json' },
+      const response = await fetch(`/api/categories/${encodeURIComponent(category.id)}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       });
       if (!response.ok) throw new Error(response.status === 404 ? 'That category was not found.' : 'We could not delete this category.');
       setCategories(current => current.filter(item => item.id !== category.id));
-      setNotice(\`Deleted “\${category.name}”. Existing transaction labels are unchanged.\`);
+      setNotice(`Deleted “${category.name}”. Existing transaction labels are unchanged.`);
     } catch (cause) {
       setError(cause instanceof TypeError ? 'Unable to reach the Transaction Service.' : cause instanceof Error ? cause.message : 'Unable to delete category.');
     }
