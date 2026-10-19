@@ -370,3 +370,18 @@ Open **Spending categories** from Transactions or Record transaction to create a
 6. Delete the custom category; verify it no longer appears in the selector while existing transactions retain their saved label.
 7. Sign in as another customer and verify the first customer's custom categories are not listed or accepted for new transactions.
 8. Run `npm run typecheck` and `npm run build` in `frontend/`, and run Transaction Service tests.
+
+
+## FE-014: Edit User Profile
+
+From the authenticated profile page, select **Edit profile** to update first name, last name, and email address. The form validates required fields and email format, shows save errors, and refreshes the displayed profile after a successful save. Updates use the authenticated Customer Service endpoint `PUT /customers/{customerId}`; the backend enforces customer ownership, email uniqueness, and the existing rule that email cannot change after KYC verification.
+
+### Verify FE-014
+
+1. Sign in and open the profile page.
+2. Select **Edit profile**, change the first or last name, and save. Confirm the updated value appears in the profile.
+3. Try blank names and an invalid email address; confirm validation prevents submission.
+4. Try an email address already used by another customer; confirm the save fails and the original profile remains visible.
+5. For a KYC-verified customer, try changing the email address; confirm the backend rejects it and the page displays the error.
+6. Cancel an edit and verify unsaved changes are discarded.
+7. Sign in as another customer and verify the API does not allow updating the first customer's profile.
