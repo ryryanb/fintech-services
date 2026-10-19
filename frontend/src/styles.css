@@ -679,3 +679,22 @@ form { display: grid; gap: 18px; }
 .spending-category-empty h3 { margin: 0 0 7px; font: 700 15px 'Manrope', sans-serif; color: var(--ink); }
 .spending-category-empty p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 @media (max-width: 600px) { .spending-category-create, .spending-category-list-card { padding: 21px 17px; } }
+
+/* FE-014: edit user profile */
+.profile-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.profile-edit-button { flex: 0 0 auto; }
+.profile-edit-form { display: grid; gap: 17px; margin-top: 18px; }
+.profile-edit-form .record-field { display: grid; gap: 8px; }
+.profile-edit-form .record-field > span { color: #35415a; font-size: 11px; font-weight: 700; }
+.profile-edit-form .record-field input { width: 100%; height: 46px; padding: 0 13px; outline: none; border: 1px solid #dfe4ed; border-radius: 9px; background: #fff; color: #23314a; font-size: 12px; }
+.profile-edit-form .record-field input:focus { border-color: #7784ee; box-shadow: 0 0 0 3px #6878ee1c; }
+.profile-edit-form .record-field small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.profile-edit-actions { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.profile-edit-actions .submit-button { width: auto; flex: 1; }
+.secondary-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 15px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #35415a; font-size: 11px; font-weight: 700; cursor: pointer; }
+.secondary-button:hover { background: #f7f8fc; }
+.secondary-button:disabled { cursor: wait; opacity: .65; }
+.profile-save-notice, .profile-save-error { margin: 14px 0 0; padding: 11px 13px; border-radius: 9px; font-size: 11px; line-height: 1.6; }
+.profile-save-notice { border: 1px solid #c9ead9; background: #f1fbf5; color: #236943; }
+.profile-save-error { border: 1px solid #f3c5c2; background: #fff6f5; color: #a4261d; }
+@media (max-width: 480px) { .profile-section-heading { align-items: flex-start; } .profile-edit-actions { flex-direction: column; align-items: stretch; } .profile-edit-actions .submit-button { width: 100%; flex: auto; } }
