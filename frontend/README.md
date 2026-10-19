@@ -370,3 +370,18 @@ Open **Spending categories** from Transactions or Record transaction to create a
 6. Delete the custom category; verify it no longer appears in the selector while existing transactions retain their saved label.
 7. Sign in as another customer and verify the first customer's custom categories are not listed or accepted for new transactions.
 8. Run `npm run typecheck` and `npm run build` in `frontend/`, and run Transaction Service tests.
+
+
+## FE-014: Edit User Profile (Names Only)
+
+From the authenticated profile page, select **Edit profile** to update first name and last name. The login email is displayed as read-only and cannot be changed in this story. The form validates required names and name length, shows save errors, and refreshes the displayed profile after a successful save. Updates use the authenticated Customer Service endpoint `PUT /customers/{customerId}`; the existing login email is preserved in the request for compatibility with the current API contract. Login-email changes are handled separately by AUTH-009.
+
+### Verify FE-014
+
+1. Sign in and open the profile page.
+2. Select **Edit profile**, change the first name and/or last name, and save. Confirm the updated values appear in the profile.
+3. Verify the email address is visible but read-only and cannot be edited.
+4. Try blank first or last names and names longer than 100 characters; confirm validation prevents submission.
+5. Cancel an edit and verify unsaved changes are discarded.
+6. Sign in as another customer and verify the API does not allow updating the first customer's profile.
+7. Run `npm run typecheck` and `npm run build` from `frontend/`.
