@@ -196,7 +196,7 @@ class FinancialTransactionServiceImplTest {
 
                 TransactionResponse result = transactionService.createTransaction(request, authentication);
 
-                assertThat(result.category()).isEqualTo(TransactionCategory.GROCERIES);
+                assertThat(result.category()).isEqualTo("GROCERIES");
         }
 
         @Test
@@ -221,7 +221,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Cash deposit",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(transactionRepository.save(any(FinancialTransaction.class)))
@@ -262,7 +262,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Transfer to savings",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(transactionRepository.save(any(FinancialTransaction.class)))
@@ -309,7 +309,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 transactionDate);
 
                 FinancialTransaction savedTransaction = FinancialTransaction.builder()
@@ -362,7 +362,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 JwtAuthenticationToken authentication = createAuthentication();
@@ -403,7 +403,7 @@ class FinancialTransactionServiceImplTest {
                                 .amount(new BigDecimal("1250.00"))
                                 .currency("PHP")
                                 .merchant("SM Supermarket")
-                                .category(TransactionCategory.GROCERIES)
+                                .category("GROCERIES")
                                 .description("Weekly groceries")
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(transactionDate)
@@ -428,7 +428,7 @@ class FinancialTransactionServiceImplTest {
                 assertThat(result.transactionDate())
                                 .isEqualTo(transactionDate);
                 assertThat(result.category())
-                                .isEqualTo(TransactionCategory.GROCERIES);
+                                .isEqualTo("GROCERIES");
 
                 verify(transactionRepository).findById(transactionId);
                 verify(transactionAuthorizationService)
@@ -500,7 +500,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(accountServiceClient.accountExists(eq(accountId), eq(bearerToken)))
@@ -564,7 +564,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(accountServiceClient.accountExists(
