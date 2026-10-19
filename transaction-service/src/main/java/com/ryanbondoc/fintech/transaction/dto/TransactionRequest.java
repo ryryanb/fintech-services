@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
 
@@ -47,7 +46,8 @@ public record TransactionRequest(
         @Size(max = 150)
 String merchant,
 
-TransactionCategory category,
+@Size(max = 60, message = "Category name must be 60 characters or fewer")
+        String category,
 
         OffsetDateTime transactionDate
         
