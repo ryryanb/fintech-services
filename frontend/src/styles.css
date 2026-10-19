@@ -659,3 +659,23 @@ form { display: grid; gap: 18px; }
   .spending-currency-group { padding: 14px; }
   .spending-total-row > strong { font-size: 18px; }
 }
+
+/* SPEND-003: manage custom spending categories */
+.spending-categories-content { max-width: 900px; }
+.spending-category-create, .spending-category-list-card { max-width: none; padding: 26px; margin-bottom: 18px; }
+.spending-category-create h2, .spending-category-list-heading h2 { margin: 0 0 7px; color: var(--ink); font: 700 18px 'Manrope', sans-serif; }
+.spending-category-create > p, .spending-category-list-heading p { margin: 0 0 20px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.spending-category-create .record-field { margin-top: 18px; }
+.spending-category-create .record-form-actions { margin-top: 18px; padding-top: 18px; }
+.spending-category-list-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+.spending-category-count { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 10px; background: #edf0ff; color: var(--accent); font-weight: 800; }
+.spending-category-manage-list { list-style: none; padding: 0; margin: 0; display: grid; }
+.spending-category-manage-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid var(--line); }
+.spending-category-manage-list li > span { display: grid; gap: 5px; min-width: 0; }
+.spending-category-manage-list strong { color: #293750; font-size: 12px; overflow-wrap: anywhere; }
+.spending-category-manage-list small { color: var(--muted); font-size: 10px; }
+.spending-category-delete { color: #a83d35; }
+.spending-category-empty { padding: 25px 8px; text-align: center; }
+.spending-category-empty h3 { margin: 0 0 7px; font: 700 15px 'Manrope', sans-serif; color: var(--ink); }
+.spending-category-empty p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+@media (max-width: 600px) { .spending-category-create, .spending-category-list-card { padding: 21px 17px; } }
