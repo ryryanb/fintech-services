@@ -17,6 +17,7 @@ import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
 import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
+import com.ryanbondoc.fintech.transaction.exception.InvalidSpendingCategoryException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
 import com.ryanbondoc.fintech.transaction.repository.SpendingCategoryRepository;
@@ -119,7 +120,7 @@ public class FinancialTransactionServiceImpl
                         throw new AccessDeniedException("Invalid customerId claim", exception);
                 }
                 if (!spendingCategoryRepository.existsByCustomerIdAndNameIgnoreCase(customerId, category)) {
-                        throw new IllegalArgumentException("Choose a built-in category or create a custom category first");
+                        throw new InvalidSpendingCategoryException("Choose a built-in category or create a custom category first");
                 }
                 return category;
         }
