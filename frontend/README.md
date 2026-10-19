@@ -354,3 +354,19 @@ The Transactions page includes a spending overview above transaction history. It
 7. If transactions exist in more than one currency, verify each currency has a separate total.
 8. Verify the empty summary message when no eligible expenses exist in the selected period.
 9. Run `npm run typecheck` and `npm run build` from `frontend/`.
+
+
+## SPEND-003: Create Spending Categories
+
+Open **Spending categories** from Transactions or Record transaction to create and manage custom category labels. Categories are scoped to the authenticated customer. Names are trimmed, whitespace is normalized, limited to 60 characters, and checked against built-in and existing categories. Custom categories are selectable when recording transactions and appear in history, transaction details, and spending summaries. Deleting a custom category prevents future use but leaves existing transaction labels intact.
+
+### Verify SPEND-003
+
+1. Sign in and open **Spending categories** from Transactions or Record transaction.
+2. Create a category such as `Pets`; verify it appears in the list.
+3. Try a blank name, a name longer than 60 characters, a built-in name such as `Groceries`, and a duplicate; verify rejection.
+4. Open Record transaction and verify the custom category appears in the category selector.
+5. Record a transaction with the custom category and verify the label appears in history, details, and SPEND-004 summary.
+6. Delete the custom category; verify it no longer appears in the selector while existing transactions retain their saved label.
+7. Sign in as another customer and verify the first customer's custom categories are not listed or accepted for new transactions.
+8. Run `npm run typecheck` and `npm run build` in `frontend/`, and run Transaction Service tests.
