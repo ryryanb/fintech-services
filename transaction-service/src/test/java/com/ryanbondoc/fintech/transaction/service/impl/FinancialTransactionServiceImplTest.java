@@ -30,7 +30,6 @@ import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
-import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
@@ -38,6 +37,7 @@ import com.ryanbondoc.fintech.transaction.exception.AccountAccessDeniedException
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
+import com.ryanbondoc.fintech.transaction.repository.SpendingCategoryRepository;
 import com.ryanbondoc.fintech.transaction.security.TransactionAuthorizationService;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +51,9 @@ class FinancialTransactionServiceImplTest {
 
         @Mock
         private TransactionAuthorizationService transactionAuthorizationService;
+
+        @Mock
+        private SpendingCategoryRepository spendingCategoryRepository;
 
         /*
          * @Mock
@@ -131,7 +134,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 transactionDate);
 
                 FinancialTransaction savedTransaction = FinancialTransaction.builder()
@@ -193,7 +196,7 @@ class FinancialTransactionServiceImplTest {
 
                 TransactionResponse result = transactionService.createTransaction(request, authentication);
 
-                assertThat(result.category()).isEqualTo(TransactionCategory.GROCERIES);
+                assertThat(result.category()).isEqualTo("GROCERIES");
         }
 
         @Test
@@ -218,7 +221,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Cash deposit",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(transactionRepository.save(any(FinancialTransaction.class)))
@@ -259,7 +262,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Transfer to savings",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(transactionRepository.save(any(FinancialTransaction.class)))
@@ -306,7 +309,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 transactionDate);
 
                 FinancialTransaction savedTransaction = FinancialTransaction.builder()
@@ -359,7 +362,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 JwtAuthenticationToken authentication = createAuthentication();
@@ -400,7 +403,7 @@ class FinancialTransactionServiceImplTest {
                                 .amount(new BigDecimal("1250.00"))
                                 .currency("PHP")
                                 .merchant("SM Supermarket")
-                                .category(TransactionCategory.GROCERIES)
+                                .category("GROCERIES")
                                 .description("Weekly groceries")
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(transactionDate)
@@ -425,7 +428,7 @@ class FinancialTransactionServiceImplTest {
                 assertThat(result.transactionDate())
                                 .isEqualTo(transactionDate);
                 assertThat(result.category())
-                                .isEqualTo(TransactionCategory.GROCERIES);
+                                .isEqualTo("GROCERIES");
 
                 verify(transactionRepository).findById(transactionId);
                 verify(transactionAuthorizationService)
@@ -497,7 +500,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(accountServiceClient.accountExists(eq(accountId), eq(bearerToken)))
@@ -561,7 +564,7 @@ class FinancialTransactionServiceImplTest {
                                 "PHP",
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 when(accountServiceClient.accountExists(

@@ -32,6 +32,7 @@ type FinancialTransactionsProps = {
   onRecordTransaction: () => void;
   onViewTransaction: (transactionId: string) => void;
   onSignOut: () => void;
+  onManageCategories: () => void;
 };
 
 const transactionCategories = [
@@ -136,6 +137,7 @@ export default function FinancialTransactions({
   onRecordTransaction,
   onViewTransaction,
   onSignOut,
+  onManageCategories,
 }: FinancialTransactionsProps) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
@@ -286,6 +288,7 @@ export default function FinancialTransactions({
         <nav className="topbar-prompt profile-nav-actions" aria-label="Main navigation">
           <button className="text-link" type="button" onClick={onBackToProfile}>Profile</button>
           <button className="text-link" type="button" onClick={onViewAccounts}>Accounts</button>
+          <button className="text-link" type="button" onClick={onManageCategories}>Spending categories</button>
           <button className="text-link" type="button" onClick={onRecordTransaction}>Record transaction</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </nav>

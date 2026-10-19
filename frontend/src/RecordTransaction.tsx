@@ -14,10 +14,8 @@ type FinancialAccount = {
 
 type TransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'PAYMENT';
 type TransactionDirection = 'CREDIT' | 'DEBIT';
-type TransactionCategory =
-  | 'GROCERIES' | 'DINING' | 'TRANSPORTATION' | 'SHOPPING' | 'UTILITIES'
-  | 'ENTERTAINMENT' | 'HEALTHCARE' | 'TRAVEL' | 'HOUSING' | 'SALARY'
-  | 'TRANSFER' | 'FEES' | 'OTHER';
+type TransactionCategory = string;
+type CustomCategory = { id: string; name: string };
 
 type TransactionResponse = {
   id: string;
@@ -37,6 +35,7 @@ type RecordTransactionProps = {
   onBackToTransactions: () => void;
   onViewAccounts: () => void;
   onSignOut: () => void;
+  onManageCategories: () => void;
 };
 
 const categories: TransactionCategory[] = [
@@ -79,8 +78,10 @@ export default function RecordTransaction({
   onBackToTransactions,
   onViewAccounts,
   onSignOut,
+  onManageCategories,
 }: RecordTransactionProps) {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [accountId, setAccountId] = useState('');
   const [type, setType] = useState<TransactionType>('PAYMENT');
   const [direction, setDirection] = useState<TransactionDirection>('DEBIT');
@@ -96,6 +97,17 @@ export default function RecordTransaction({
 
   useEffect(() => {
     const controller = new AbortController();
+    async function loadCategories() {
+      const token = getAccessToken();
+      if (!token) return;
+      try {
+        const response = await fetch('/api/categories', { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, signal: controller.signal });
+        if (!response.ok) return;
+        const payload: unknown = await response.json();
+        if (Array.isArray(payload) && payload.every(item => typeof item === 'object' && item !== null && 'id' in item && typeof item.id === 'string' && 'name' in item && typeof item.name === 'string')) setCustomCategories(payload as CustomCategory[]);
+      } catch (cause) { if (!(cause instanceof DOMException && cause.name === 'AbortError')) { /* account loading has its own error state */ } }
+    }
+    void loadCategories();
     async function loadAccounts() {
       const token = getAccessToken();
       if (!token) {
@@ -235,6 +247,7 @@ export default function RecordTransaction({
         <nav className="topbar-prompt profile-nav-actions" aria-label="Main navigation">
           <button className="text-link" type="button" onClick={onViewAccounts}>Accounts</button>
           <button className="text-link" type="button" onClick={onBackToTransactions}>Transactions</button>
+          <button className="text-link" type="button" onClick={onManageCategories}>Spending categories</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </nav>
       </header>
@@ -290,6 +303,7 @@ export default function RecordTransaction({
                 <select value={category} onChange={event => setCategory(event.target.value as TransactionCategory | '')} disabled={submitting}>
                   <option value="">Auto-categorize from merchant and description</option>
                   {categories.map(item => <option key={item} value={item}>{titleCase(item)}</option>)}
+                  {customCategories.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}
                 </select>
                 <small>Choose a category yourself, or let the service suggest one from the merchant and description. You can review the saved category in transaction history.</small>
               </label>
