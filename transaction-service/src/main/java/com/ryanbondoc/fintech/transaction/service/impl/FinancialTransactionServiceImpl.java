@@ -19,6 +19,7 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
 import com.ryanbondoc.fintech.transaction.repository.FinancialTransactionRepository;
+import com.ryanbondoc.fintech.transaction.repository.SpendingCategoryRepository;
 import com.ryanbondoc.fintech.transaction.security.TransactionAuthorizationService;
 import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
 
@@ -33,6 +34,7 @@ public class FinancialTransactionServiceImpl
         private final FinancialTransactionRepository transactionRepository;
         private final AccountServiceClient accountServiceClient;
         private final TransactionAuthorizationService transactionAuthorizationService;
+        private final SpendingCategoryRepository spendingCategoryRepository;
 
         @Override
         @Transactional(readOnly = true)
@@ -63,6 +65,8 @@ public class FinancialTransactionServiceImpl
                                 accountId,
                                 authentication);
 
+                String category = resolveCategory(request, authentication);
+
                 FinancialTransaction transaction = FinancialTransaction.builder()
                                 .accountId(accountId)
                                 .type(request.type())
@@ -70,14 +74,7 @@ public class FinancialTransactionServiceImpl
                                 .amount(request.amount())
                                 .currency(request.currency())
                                 .merchant(request.merchant())
-                                .category(
-                                                request.category() != null
-                                                                ? request.category()
-                                                                : TransactionCategorizer.categorize(
-                                                                                request.merchant(),
-                                                                                request.description(),
-                                                                                request.type(),
-                                                                                request.direction()))
+                                .category(category)
                                 .description(request.description())
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(
@@ -89,6 +86,42 @@ public class FinancialTransactionServiceImpl
                 FinancialTransaction saved = transactionRepository.save(transaction);
 
                 return toResponse(saved);
+        }
+
+
+        private String resolveCategory(TransactionRequest request, Authentication authentication) {
+                if (request.category() == null || request.category().isBlank()) {
+                        return TransactionCategorizer.categorize(
+                                        request.merchant(),
+                                        request.description(),
+                                        request.type(),
+                                        request.direction()).name();
+                }
+
+                String category = request.category().trim().replaceAll("\\s+", " ");
+                try {
+                        return TransactionCategory.valueOf(category.toUpperCase(java.util.Locale.ROOT)).name();
+                } catch (IllegalArgumentException ignored) {
+                        // Custom categories are scoped to the authenticated customer.
+                }
+
+                if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+                        throw new AccessDeniedException("Invalid authentication");
+                }
+                String customerIdValue = jwtAuthentication.getToken().getClaimAsString("customerId");
+                if (customerIdValue == null || customerIdValue.isBlank()) {
+                        throw new AccessDeniedException("Missing customerId claim");
+                }
+                UUID customerId;
+                try {
+                        customerId = UUID.fromString(customerIdValue);
+                } catch (IllegalArgumentException exception) {
+                        throw new AccessDeniedException("Invalid customerId claim", exception);
+                }
+                if (!spendingCategoryRepository.existsByCustomerIdAndNameIgnoreCase(customerId, category)) {
+                        throw new IllegalArgumentException("Choose a built-in category or create a custom category first");
+                }
+                return category;
         }
 
         private TransactionResponse toResponse(
