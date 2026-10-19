@@ -29,7 +29,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
-import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
@@ -68,7 +67,7 @@ class FinancialTransactionControllerTest {
                                 new BigDecimal("1250.00"),
                                 "PHP",
                                 "SM Supermarket",
-                                TransactionCategory.GROCERIES,
+                                "GROCERIES",
                                 "Weekly groceries",
                                 TransactionStatus.COMPLETED,
                                 transactionDate);
@@ -104,7 +103,7 @@ class FinancialTransactionControllerTest {
 
                                 "Utility payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 transactionDate);
 
                 TransactionResponse response = new TransactionResponse(
@@ -115,7 +114,7 @@ class FinancialTransactionControllerTest {
                                 new BigDecimal("1250.00"),
                                 "PHP",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 "Utility payment",
                                 TransactionStatus.COMPLETED,
                                 transactionDate);
@@ -151,7 +150,7 @@ class FinancialTransactionControllerTest {
                                 "PHP",
                                 "Invalid payment",
                                 "merchant",
-                                TransactionCategory.FEES,
+                                "FEES",
                                 null);
 
                 mockMvc.perform(post("/transactions")
@@ -174,7 +173,7 @@ class FinancialTransactionControllerTest {
                                 new BigDecimal("1250.00"),
                                 "PHP",
                                 "SM Supermarket",
-                                TransactionCategory.GROCERIES,
+                                "GROCERIES",
                                 "Weekly groceries",
                                 TransactionStatus.COMPLETED,
                                 OffsetDateTime.parse("2026-09-09T14:30:00Z"));
