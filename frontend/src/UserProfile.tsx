@@ -162,7 +162,7 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
       setSaveError('First and last names must be 100 characters or fewer.');
       return;
     }
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setSaveError('Enter a valid email address.');
       return;
     }
