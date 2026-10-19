@@ -52,7 +52,6 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
   const [saving, setSaving] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
   const [saveError, setSaveError] = useState('');
   const [saveNotice, setSaveNotice] = useState('');
 
@@ -142,7 +141,6 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
     if (!profile) return;
     setEditFirstName(profile.firstName);
     setEditLastName(profile.lastName);
-    setEditEmail(profile.email);
     setSaveError('');
     setSaveNotice('');
     setEditing(true);
@@ -153,17 +151,12 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
     if (!profile) return;
     const firstName = editFirstName.trim();
     const lastName = editLastName.trim();
-    const email = editEmail.trim();
-    if (!firstName || !lastName || !email) {
-      setSaveError('First name, last name, and email address are required.');
+    if (!firstName || !lastName) {
+      setSaveError('First name and last name are required.');
       return;
     }
     if (firstName.length > 100 || lastName.length > 100) {
       setSaveError('First and last names must be 100 characters or fewer.');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setSaveError('Enter a valid email address.');
       return;
     }
     const token = getAccessToken();
@@ -185,7 +178,8 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
         body: JSON.stringify({
           firstName,
           lastName,
-          email,
+          // Preserve the existing login email; email changes are handled by AUTH-009.
+          email: profile.email,
           status: profile.status,
           customerNumber: profile.customerNumber,
         }),
@@ -201,15 +195,13 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
       }
       if (typeof payload !== 'object' || payload === null ||
           !('firstName' in payload) || typeof payload.firstName !== 'string' ||
-          !('lastName' in payload) || typeof payload.lastName !== 'string' ||
-          !('email' in payload) || typeof payload.email !== 'string') {
+          !('lastName' in payload) || typeof payload.lastName !== 'string') {
         throw new Error('The profile service returned an unexpected response.');
       }
       setProfile(current => current ? {
         ...current,
         firstName: payload.firstName as string,
         lastName: payload.lastName as string,
-        email: payload.email as string,
         status: 'status' in payload && typeof payload.status === 'string' ? payload.status : current.status,
         customerNumber: 'customerNumber' in payload && typeof payload.customerNumber === 'string' ? payload.customerNumber : current.customerNumber,
       } : current);
@@ -280,7 +272,7 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
               <form className="profile-edit-form" onSubmit={saveProfile}>
                 <label className="record-field"><span>First name</span><input autoComplete="given-name" value={editFirstName} onChange={event => setEditFirstName(event.target.value)} maxLength={100} required disabled={saving} /></label>
                 <label className="record-field"><span>Last name</span><input autoComplete="family-name" value={editLastName} onChange={event => setEditLastName(event.target.value)} maxLength={100} required disabled={saving} /></label>
-                <label className="record-field"><span>Email address</span><input type="email" autoComplete="email" value={editEmail} onChange={event => setEditEmail(event.target.value)} required disabled={saving} /><small>If your account has completed KYC verification, the email address may be locked.</small></label>
+                <label className="record-field"><span>Email address</span><input type="email" autoComplete="email" value={profile.email} readOnly aria-readonly="true" /><small>Your login email is read-only here. Changing it is handled separately.</small></label>
                 <div className="profile-edit-actions"><button className="submit-button" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button><button className="secondary-button" type="button" disabled={saving} onClick={() => { setEditing(false); setSaveError(''); setSaveNotice(''); }}>Cancel</button></div>
               </form>
             ) : <dl className="profile-details">
