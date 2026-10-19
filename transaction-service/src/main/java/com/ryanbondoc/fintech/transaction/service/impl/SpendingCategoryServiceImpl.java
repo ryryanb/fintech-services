@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ryanbondoc.fintech.transaction.dto.SpendingCategoryRequest;
 import com.ryanbondoc.fintech.transaction.dto.SpendingCategoryResponse;
 import com.ryanbondoc.fintech.transaction.entity.SpendingCategory;
+import com.ryanbondoc.fintech.transaction.exception.InvalidSpendingCategoryException;
 import com.ryanbondoc.fintech.transaction.repository.SpendingCategoryRepository;
 import com.ryanbondoc.fintech.transaction.service.SpendingCategoryService;
 
@@ -38,13 +39,13 @@ public class SpendingCategoryServiceImpl implements SpendingCategoryService {
         UUID customerId = customerId(authentication);
         String name = request.name().trim().replaceAll("\\s+", " ");
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Category name is required");
+            throw new InvalidSpendingCategoryException("Category name is required");
         }
         if (isBuiltInCategory(name)) {
-            throw new IllegalArgumentException("That name is already available as a built-in category");
+            throw new InvalidSpendingCategoryException("That name is already available as a built-in category");
         }
         if (categoryRepository.existsByCustomerIdAndNameIgnoreCase(customerId, name)) {
-            throw new IllegalArgumentException("You already have a category with that name");
+            throw new InvalidSpendingCategoryException("You already have a category with that name");
         }
         return toResponse(categoryRepository.save(new SpendingCategory(customerId, name)));
     }
@@ -53,7 +54,7 @@ public class SpendingCategoryServiceImpl implements SpendingCategoryService {
     public void deleteCategory(UUID categoryId, Authentication authentication) {
         UUID customerId = customerId(authentication);
         SpendingCategory category = categoryRepository.findByIdAndCustomerId(categoryId, customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Spending category was not found"));
+                .orElseThrow(() -> new InvalidSpendingCategoryException("Spending category was not found"));
         categoryRepository.delete(category);
     }
 
