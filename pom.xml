@@ -29,6 +29,7 @@
         <module>customer-service</module>
         <module>account-service</module>
         <module>transaction-service</module>
+        <module>payment-service</module>
     </modules>
 
     <build>
