@@ -26,6 +26,7 @@ import com.ryanbondoc.fintech.payment.repository.PaymentRepository;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutGateway;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutSessionDetails;
 import com.ryanbondoc.fintech.payment.stripe.StripeCheckoutException;
+import com.ryanbondoc.fintech.payment.paypal.PayPalCheckoutGateway;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -38,11 +39,14 @@ class PaymentServiceTest {
     @Mock
     private CheckoutGateway paypalCheckoutGateway;
 
+    @Mock
+    private PayPalCheckoutGateway paypalGateway;
+
     private PaymentService paymentService;
 
     @BeforeEach
     void setUp() {
-        paymentService = new PaymentService(paymentRepository, stripeCheckoutGateway, paypalCheckoutGateway);
+        paymentService = new PaymentService(paymentRepository, stripeCheckoutGateway, paypalCheckoutGateway, paypalGateway);
     }
 
     @Test
