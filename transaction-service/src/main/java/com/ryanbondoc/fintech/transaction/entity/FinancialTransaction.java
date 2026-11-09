@@ -61,6 +61,9 @@ public class FinancialTransaction {
     @Column(length = 150)
 private String merchant;
 
-@Column(length = 60)
-private String category;
+    @Column(length = 60)
+    private String category;
+
+    @Column(name = "provider_transaction_id", length = 150, unique = true)
+    private String providerTransactionId;
 }
