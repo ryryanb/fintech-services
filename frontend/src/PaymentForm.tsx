@@ -44,6 +44,7 @@ function errorMessage(payload: unknown, status: number): string {
 export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSignOut }: PaymentFormProps) {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<(typeof supportedCurrencies)[number]>('PHP');
+  const [provider, setProvider] = useState<'STRIPE' | 'PAYPAL'>('STRIPE');
   const [description, setDescription] = useState('Demo purchase');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +52,11 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
+
+    if (provider !== 'STRIPE') {
+      setError('PayPal checkout is not available yet. Select Stripe to continue.');
+      return;
+    }
 
     const numericAmount = Number(amount);
     if (!Number.isFinite(numericAmount) || numericAmount < 0.5) {
@@ -139,8 +145,40 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
 
           <div className="payment-form-summary">
             <span className="payment-form-summary-icon" aria-hidden="true">↗</span>
-            <div><strong>Payment details</strong><p>Your payment will be processed on Stripe's secure hosted checkout page.</p></div>
+            <div><strong>Choose how to pay</strong><p>Select an available payment provider. You will enter your payment details on its secure checkout page.</p></div>
           </div>
+
+          <fieldset className="provider-selector" aria-describedby="provider-help">
+            <legend>Payment provider <span aria-hidden="true">*</span></legend>
+            <div className="provider-options">
+              <label className={`provider-option ${provider === 'STRIPE' ? 'provider-option-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="payment-provider"
+                  value="STRIPE"
+                  checked={provider === 'STRIPE'}
+                  onChange={() => setProvider('STRIPE')}
+                  disabled={submitting}
+                />
+                <span className="provider-option-mark" aria-hidden="true">S</span>
+                <span className="provider-option-copy">
+                  <strong>Stripe</strong>
+                  <small>Secure hosted checkout · Available</small>
+                </span>
+                <span className="provider-option-check" aria-hidden="true">✓</span>
+              </label>
+              <label className="provider-option provider-option-unavailable" aria-disabled="true">
+                <input type="radio" name="payment-provider" value="PAYPAL" disabled />
+                <span className="provider-option-mark provider-option-mark-paypal" aria-hidden="true">P</span>
+                <span className="provider-option-copy">
+                  <strong>PayPal</strong>
+                  <small>Not configured yet</small>
+                </span>
+                <span className="provider-coming-soon">Coming soon</span>
+              </label>
+            </div>
+            <small id="provider-help" className="provider-help">Stripe is currently the only configured provider. Additional providers will become selectable when their checkout integrations are enabled.</small>
+          </fieldset>
 
           <div className="record-form-grid">
             <label className="record-field">
