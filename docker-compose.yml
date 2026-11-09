@@ -69,7 +69,7 @@ services:
       - fintech-network
 
 
-    # ============================================================
+  # ============================================================
   # Transaction Database
   # ============================================================
 
@@ -196,7 +196,7 @@ services:
     networks:
       - fintech-network
   
-    # ============================================================
+  # ============================================================
   # Payment Service
   # ============================================================
 
@@ -206,7 +206,7 @@ services:
       context: .
       dockerfile: payment-service/Dockerfile
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/payment_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/${PAYMENT_DB_NAME:-payment_db}
       SPRING_DATASOURCE_USERNAME: ${PAYMENT_DB_USERNAME:?Set PAYMENT_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
