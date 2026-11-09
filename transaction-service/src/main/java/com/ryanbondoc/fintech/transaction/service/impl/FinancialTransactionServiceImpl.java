@@ -130,6 +130,9 @@ public class FinancialTransactionServiceImpl
                                 .findByProviderTransactionId(imported.providerTransactionId())
                                 .orElseGet(FinancialTransaction::new);
                 boolean existed = transaction.getId() != null;
+                if (existed) {
+                        transactionAuthorizationService.authorizeAccountAccess(transaction.getAccountId(), authentication);
+                }
                 BigDecimal signedAmount = imported.amount();
                 TransactionDirection direction = signedAmount.signum() < 0
                                 ? TransactionDirection.CREDIT : TransactionDirection.DEBIT;
