@@ -9,6 +9,7 @@ import RecordTransaction from './RecordTransaction';
 import TransactionDetails from './TransactionDetails';
 import SpendingCategories from './SpendingCategories';
 import PaymentForm from './PaymentForm';
+import PaymentCompletion from './PaymentCompletion';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -47,7 +48,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   useEffect(() => {
     function syncPath() {
       const path = window.location.pathname;
-      if (!isAuthenticated && (['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new', '/categories', '/payments/new'].includes(path) || /^\/transactions\/[^/]+$/.test(path))) {
+      if (!isAuthenticated && (['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new', '/categories', '/payments/new', '/payments/complete'].includes(path) || /^\/transactions\/[^/]+$/.test(path))) {
         window.history.replaceState(null, '', '/login');
         setCurrentPath('/login');
         return;
@@ -101,8 +102,14 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
 
       setAccessToken(payload.accessToken);
       setIsAuthenticated(true);
-      window.history.pushState(null, '', '/profile');
-      setCurrentPath('/profile');
+      const pendingPayment = sessionStorage.getItem('pendingPaypalPayment');
+      if (pendingPayment) {
+        window.history.pushState(null, '', '/payments/complete');
+        setCurrentPath('/payments/complete');
+      } else {
+        window.history.pushState(null, '', '/profile');
+        setCurrentPath('/profile');
+      }
       setPassword('');
       setNotice('');
     } catch (error) {
@@ -122,27 +129,27 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
 
   if (currentPath === '/payment/paypal/return' || currentPath === '/payment/paypal/cancel') {
     const wasCancelled = currentPath.endsWith('/cancel');
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('paymentId');
+    const orderId = params.get('token');
     return (
       <main className="page-shell login-page">
-        <header className="topbar">
-          <a className="brand" href="/" aria-label="Fintech home" onClick={event => event.preventDefault()}>
-            <BrandMark />
-            <span>fintech<span className="brand-period">.</span></span>
-          </a>
-        </header>
         <section className="form-panel login-form-panel">
           <div className="form-card login-card">
             <div className="form-heading">
               <div className="form-step">PAYPAL SANDBOX</div>
-              <h2>{wasCancelled ? 'Checkout cancelled' : 'PayPal approval received'}</h2>
+              <h2>{wasCancelled ? 'Checkout cancelled' : 'Approval received'}</h2>
               <p>{wasCancelled
-                ? 'You cancelled the PayPal approval process. No payment has been captured.'
-                : 'PayPal has returned you to the application. The order still needs to be captured and verified before it can be marked as paid.'}</p>
+                ? 'You cancelled the PayPal approval process. No payment was captured.'
+                : 'Sign in again to securely capture and verify your approved PayPal order.'}</p>
             </div>
             <button className="submit-button" type="button" onClick={() => {
+              if (!wasCancelled && paymentId && orderId) {
+                sessionStorage.setItem('pendingPaypalPayment', JSON.stringify({ paymentId, orderId }));
+              }
               window.history.replaceState(null, '', '/login');
               setCurrentPath('/login');
-            }}>Return to sign in <span aria-hidden="true">→</span></button>
+            }}>Continue to sign in <span aria-hidden="true">→</span></button>
           </div>
         </section>
       </main>
@@ -177,6 +184,16 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
 
   if (isAuthenticated && currentPath === '/categories') {
     return <ProtectedRoute isAuthenticated={isAuthenticated}><SpendingCategories onBack={() => { window.history.pushState(null, '', '/transactions'); setCurrentPath('/transactions'); }} onSignOut={() => { clearAccessToken(); setIsAuthenticated(false); window.history.replaceState(null, '', '/login'); setCurrentPath('/login'); }} /></ProtectedRoute>;
+  }
+
+  if (isAuthenticated && currentPath === '/payments/complete') {
+    const pending = sessionStorage.getItem('pendingPaypalPayment');
+    let details: { paymentId?: string; orderId?: string } = {};
+    try { details = pending ? JSON.parse(pending) as { paymentId?: string; orderId?: string } : {}; } catch { /* invalid session data */ }
+    if (!details.paymentId || !details.orderId) {
+      return <main className="page-shell login-page"><section className="form-panel login-form-panel"><div className="form-card login-card"><h2>No pending payment</h2><p>There is no PayPal payment waiting to be completed.</p><button className="submit-button" type="button" onClick={() => { window.history.replaceState(null, '', '/transactions'); setCurrentPath('/transactions'); }}>Return to transactions</button></div></section></main>;
+    }
+    return <ProtectedRoute isAuthenticated={isAuthenticated}><PaymentCompletion paymentId={details.paymentId} orderId={details.orderId} onDone={() => { window.history.replaceState(null, '', '/transactions'); setCurrentPath('/transactions'); }} /></ProtectedRoute>;
   }
 
   if (isAuthenticated && currentPath === '/payments/new') {
