@@ -126,6 +126,12 @@ Set `STRIPE_SECRET_KEY` to a Stripe **test-mode** secret key (starts with `sk_te
 
 ### Completing secure payments (PAY-003)
 
+### Idempotent checkout requests (PAY-006)
+
+Every `POST /api/payments/checkout` request must include an `Idempotency-Key` header (1–128 characters). The frontend generates a UUID and retains it across transient retries/reloads for the same checkout attempt. Keys are scoped to the authenticated customer. Repeating a request with the same key and identical amount, currency, description, and provider returns the original payment and checkout URL; reusing the key with different details returns HTTP 409 Conflict. Use a new key when intentionally starting a different payment.
+
+The payment service reserves the key with a PostgreSQL unique index before contacting a provider. The stable payment UUID is also sent as the provider idempotency identifier (Stripe `Idempotency-Key` and PayPal `PayPal-Request-Id`) so a retry after an ambiguous network failure can recover the same provider checkout rather than create a second one. A reservation remains pending when provider creation fails, allowing a retry with the same key to safely attempt recovery.
+
 The Payment Service never receives or stores card numbers, CVVs, or PayPal passwords. Card and wallet credentials are entered on the provider-hosted checkout pages.
 
 **Stripe:** set `STRIPE_SECRET_KEY` to a test-mode key and configure the webhook signing secret. For local development, install the Stripe CLI, then run:
@@ -589,6 +595,7 @@ Example request (requires a valid bearer token):
 ```http
 POST http://localhost:8088/api/payments/checkout
 Authorization: Bearer <access-token>
+Idempotency-Key: 8d0d8e5a-55ad-4b38-9e2f-3f30a5f5b6d1
 Content-Type: application/json
 
 {
@@ -693,7 +700,7 @@ These capabilities remain **planned** and are not currently part of the implemen
 * [ ] Transaction categorization
 * [x] Payment Service foundation
 * [x] Stripe Checkout initiation
-* [ ] Payment idempotency
+* [x] Payment idempotency
 * [ ] Failure handling
 
 ## Phase 3 — Platform Hardening
