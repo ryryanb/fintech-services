@@ -35,6 +35,10 @@ public class PlaidTokenCipher {
         }
     }
 
+    public boolean isConfigured() {
+        return key != null;
+    }
+
     public String encrypt(String plaintext) {
         if (key == null) {
             throw new IllegalStateException("Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");

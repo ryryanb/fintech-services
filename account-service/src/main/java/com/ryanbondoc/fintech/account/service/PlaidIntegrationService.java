@@ -37,7 +37,6 @@ public class PlaidIntegrationService {
     private final String clientId;
     private final String secret;
     private final String baseUrl;
-    private final String environment;
     private final RestClient restClient = RestClient.create();
 
     public PlaidIntegrationService(
@@ -54,7 +53,12 @@ public class PlaidIntegrationService {
         this.clientId = clientId;
         this.secret = secret;
         this.baseUrl = baseUrl;
-        this.environment = environment;
+        if (!"sandbox".equalsIgnoreCase(environment)) {
+            throw new IllegalStateException("This ACC-008 integration is restricted to Plaid Sandbox.");
+        }
+        if (!"https://sandbox.plaid.com".equalsIgnoreCase(baseUrl)) {
+            throw new IllegalStateException("This ACC-008 integration must use https://sandbox.plaid.com.");
+        }
     }
 
     public PlaidLinkTokenResponse createLinkToken(UUID customerId) {
@@ -163,6 +167,10 @@ public class PlaidIntegrationService {
         if (clientId.isBlank() || secret.isBlank()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Plaid is not configured. Set PLAID_CLIENT_ID and PLAID_SECRET.");
+        }
+        if (!tokenCipher.isConfigured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");
         }
     }
 
