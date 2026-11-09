@@ -124,6 +124,22 @@ Replace every sample password with a unique local development password. Compose 
 
 Set `STRIPE_SECRET_KEY` to a Stripe **test-mode** secret key (starts with `sk_test_`) to enable Checkout Session creation. Keep it in the untracked `.env` file; never commit a live or test secret. The Payment Service is available at `http://localhost:8088` and uses its own PostgreSQL database on port `5438`.
 
+### Completing secure payments (PAY-003)
+
+The Payment Service never receives or stores card numbers, CVVs, or PayPal passwords. Card and wallet credentials are entered on the provider-hosted checkout pages.
+
+**Stripe:** set `STRIPE_SECRET_KEY` to a test-mode key and configure the webhook signing secret. For local development, install the Stripe CLI, then run:
+
+```bash
+stripe listen --forward-to localhost:8088/api/payments/webhooks/stripe
+```
+
+Copy the displayed `whsec_...` value to `STRIPE_WEBHOOK_SECRET` in your untracked `.env` file, then rebuild the Payment Service. Configure the Stripe webhook to deliver `checkout.session.completed` and `checkout.session.async_payment_succeeded`. The service verifies the `Stripe-Signature` header and only marks a payment successful when the signed Checkout Session reports `payment_status=paid`.
+
+**PayPal:** after the payer approves the sandbox order, sign in again when returned to the app. The Payment Service captures the order server-side and compares the returned order ID, capture ID, amount, currency, and completed statuses with the original payment before marking it successful.
+
+Payment status can be retrieved through the authenticated `GET /api/payments/{paymentId}` endpoint. Only the owning customer can read or complete their payment. Never mark a payment successful based only on a browser redirect or query parameter.
+
 The Auth Service signing key is also local-only: keep `auth-service/keys/jwt-private.pem` out of Git (it is ignored by `.gitignore`). Generate/provision a key locally and never paste a real private key into source control. Public verification keys may be committed when needed; private signing keys must not be.
 
 ## 3. Build and start the backend with Docker Compose
