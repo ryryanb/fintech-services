@@ -5,6 +5,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -102,6 +104,50 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
             throw new PayPalCheckoutException("Unable to create PayPal Checkout order.", exception);
         }
     }
+
+
+    public CapturedPayPalPayment captureOrder(String orderId) {
+        if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
+            throw new IllegalStateException("PayPal sandbox is not configured.");
+        }
+        try {
+            AccessTokenResponse token = paypalClient.post()
+                    .uri("/v1/oauth2/token")
+                    .headers(headers -> headers.setBasicAuth(clientId, clientSecret))
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body("grant_type=client_credentials")
+                    .retrieve().body(AccessTokenResponse.class);
+            if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
+                throw new IllegalStateException("PayPal did not return an OAuth access token.");
+            }
+            JsonNode response = paypalClient.post()
+                    .uri("/v2/checkout/orders/{id}/capture", orderId)
+                    .headers(headers -> {
+                        headers.setBearerAuth(token.accessToken());
+                        headers.setContentType(MediaType.APPLICATION_JSON);
+                        headers.set("PayPal-Request-Id", orderId + "-capture");
+                    })
+                    .body(Map.of())
+                    .retrieve().body(JsonNode.class);
+            JsonNode capture = response == null ? null
+                    : response.path("purchase_units").path(0).path("payments").path("captures").path(0);
+            if (response == null || !response.path("status").asText().equals("COMPLETED")
+                    || capture == null || !capture.path("status").asText().equals("COMPLETED")) {
+                throw new PayPalCheckoutException("PayPal has not confirmed a completed capture.", null);
+            }
+            return new CapturedPayPalPayment(
+                    response.path("id").asText(),
+                    capture.path("id").asText(),
+                    capture.path("amount").path("value").asText(),
+                    capture.path("amount").path("currency_code").asText());
+        } catch (RestClientResponseException exception) {
+            log.warn("PayPal capture failed: statusCode={}, response={}",
+                    exception.getStatusCode().value(), exception.getResponseBodyAsString());
+            throw new PayPalCheckoutException("Unable to capture PayPal order.", exception);
+        }
+    }
+
+    public record CapturedPayPalPayment(String orderId, String captureId, String amount, String currency) { }
 
     private boolean isSandboxApprovalUrl(String url) {
         if (url == null) return false;
