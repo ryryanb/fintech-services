@@ -15,7 +15,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.ryanbondoc.fintech.account.dto.FinancialAccountResponse;
 import com.ryanbondoc.fintech.account.dto.PlaidConnectionResponse;
 import com.ryanbondoc.fintech.account.dto.PlaidExchangeRequest;
@@ -28,6 +27,8 @@ import com.ryanbondoc.fintech.account.enums.AccountType;
 import com.ryanbondoc.fintech.account.repository.FinancialAccountRepository;
 import com.ryanbondoc.fintech.account.repository.PlaidConnectionRepository;
 import com.ryanbondoc.fintech.account.security.PlaidTokenCipher;
+
+import tools.jackson.databind.JsonNode;
 
 @Service
 public class PlaidIntegrationService {
@@ -134,7 +135,8 @@ public class PlaidIntegrationService {
     public void disconnect(UUID customerId, UUID connectionId) {
         PlaidConnection connection = connectionRepository.findByIdAndCustomerId(connectionId, customerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plaid connection not found."));
-        if ("DISCONNECTED".equals(connection.getStatus())) return;
+        if ("DISCONNECTED".equals(connection.getStatus()))
+            return;
         String accessToken = tokenCipher.decrypt(connection.getEncryptedAccessToken());
         plaidPost("/item/remove", Map.of("access_token", accessToken));
         connection.setStatus("DISCONNECTED");
@@ -153,7 +155,8 @@ public class PlaidIntegrationService {
             body.put("secret", secret);
             body.putAll(payload);
             JsonNode response = restClient.post().uri(baseUrl + path).body(body).retrieve().body(JsonNode.class);
-            if (response == null) throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned an empty response.");
+            if (response == null)
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Plaid returned an empty response.");
             return response;
         } catch (RestClientResponseException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
@@ -183,8 +186,10 @@ public class PlaidIntegrationService {
     }
 
     private String firstNonBlank(String first, String second, String fallback) {
-        if (first != null && !first.isBlank()) return first;
-        if (second != null && !second.isBlank()) return second;
+        if (first != null && !first.isBlank())
+            return first;
+        if (second != null && !second.isBlank())
+            return second;
         return fallback;
     }
 
