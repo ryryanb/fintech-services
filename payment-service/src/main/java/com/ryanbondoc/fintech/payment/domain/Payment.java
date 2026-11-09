@@ -39,6 +39,12 @@ public class Payment {
     @Column(nullable = false, length = 20)
     private PaymentProvider provider;
 
+    @Column(name = "idempotency_key", length = 128)
+    private String idempotencyKey;
+
+    @Column(name = "request_fingerprint", length = 64)
+    private String requestFingerprint;
+
     @Column(name = "stripe_session_id", length = 255, unique = true)
     private String stripeSessionId;
 
@@ -68,6 +74,11 @@ public class Payment {
         this.description = description;
         this.status = PaymentStatus.PENDING;
         this.provider = provider;
+    }
+
+    public void setIdempotency(String key, String fingerprint) {
+        this.idempotencyKey = key;
+        this.requestFingerprint = fingerprint;
     }
 
     @PrePersist
@@ -111,6 +122,8 @@ public class Payment {
     public String getDescription() { return description; }
     public PaymentStatus getStatus() { return status; }
     public PaymentProvider getProvider() { return provider; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public String getRequestFingerprint() { return requestFingerprint; }
     public String getStripeSessionId() { return stripeSessionId; }
     public String getPaypalOrderId() { return paypalOrderId; }
     public String getCheckoutUrl() { return checkoutUrl; }
