@@ -41,6 +41,9 @@ public class PlaidConnection {
     @Column(nullable = false, length = 20)
     private String status;
 
+    @Column(name = "transactions_cursor", columnDefinition = "TEXT")
+    private String transactionsCursor;
+
     @Column(nullable = false)
     private Instant createdAt;
 
