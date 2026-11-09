@@ -1,18 +1,23 @@
 package com.ryanbondoc.fintech.payment.service;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import java.math.BigDecimal;
-import java.util.UUID;
-import com.ryanbondoc.fintech.payment.domain.PaymentStatus;
-import com.ryanbondoc.fintech.payment.paypal.PayPalCheckoutGateway;
 
 import com.ryanbondoc.fintech.payment.api.CheckoutResponse;
 import com.ryanbondoc.fintech.payment.api.CreateCheckoutRequest;
 import com.ryanbondoc.fintech.payment.domain.Payment;
 import com.ryanbondoc.fintech.payment.domain.PaymentProvider;
+import com.ryanbondoc.fintech.payment.domain.PaymentStatus;
+import com.ryanbondoc.fintech.payment.paypal.PayPalCheckoutGateway;
 import com.ryanbondoc.fintech.payment.repository.PaymentRepository;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutGateway;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutSessionDetails;
@@ -41,7 +46,6 @@ public class PaymentService {
             case PAYPAL -> paypalCheckoutGateway;
         };
     }
-
 
     @Transactional
     public CheckoutResponse capturePayPalPayment(UUID paymentId, String customerId, String approvedOrderId) {
@@ -92,15 +96,43 @@ public class PaymentService {
                 payment.getCheckoutUrl(), payment.getCreatedAt());
     }
 
-    public CheckoutResponse initiateCheckout(String customerId, CreateCheckoutRequest request) {
-        Payment payment = paymentRepository.save(new Payment(
-                customerId,
-                request.amount(),
-                request.normalizedCurrency(),
-                request.description().trim(), request.normalizedProvider()));
+    @Transactional
+    public CheckoutResponse initiateCheckout(String customerId, CreateCheckoutRequest request, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key must contain between 1 and 128 characters.");
+        }
+
+        String currency = request.normalizedCurrency();
+        String description = request.description().trim();
+        PaymentProvider provider = request.normalizedProvider();
+        String fingerprint = fingerprint(request.amount(), currency, description, provider);
+
+        Payment payment = paymentRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
+                .orElse(null);
+
+        if (payment != null) {
+            if (!fingerprint.equals(payment.getRequestFingerprint())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Idempotency-Key has already been used with different payment details.");
+            }
+            if (payment.getCheckoutUrl() != null && !payment.getCheckoutUrl().isBlank()) {
+                return toResponse(payment);
+            }
+            if (payment.getStatus() != PaymentStatus.PENDING) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "The original checkout request did not complete. Use a new Idempotency-Key to start a new payment.");
+            }
+        } else {
+            payment = new Payment(customerId, request.amount(), currency, description, provider);
+            payment.setIdempotency(idempotencyKey, fingerprint);
+            payment = paymentRepository.saveAndFlush(payment);
+        }
 
         final CheckoutSessionDetails session;
         try {
+            // The stable payment UUID is the provider idempotency key. A retry after a
+            // timeout or process restart therefore cannot create a second provider order.
             session = gatewayFor(payment.getProvider()).createSession(payment);
         } catch (RuntimeException exception) {
             payment.markFailed();
@@ -108,14 +140,19 @@ public class PaymentService {
             throw exception;
         }
 
-        // Persisting the provider response is deliberately outside the provider failure
-        // handler. Stripe may already have created a payable session; a database
-        // failure here must not incorrectly mark that payment as FAILED.
         payment.attachCheckoutDetails(session.sessionId(), session.checkoutUrl());
         payment = paymentRepository.save(payment);
+        return toResponse(payment);
+    }
 
-        return new CheckoutResponse(
-                payment.getId(), payment.getAmount(), payment.getCurrency(),
-                payment.getDescription(), payment.getProvider(), payment.getStatus(), payment.getCheckoutUrl(), payment.getCreatedAt());
+    private String fingerprint(BigDecimal amount, String currency, String description, PaymentProvider provider) {
+        String canonical = amount.stripTrailingZeros().toPlainString() + "|" + currency + "|"
+                + description + "|" + provider.name();
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable.", exception);
+        }
     }
 }
