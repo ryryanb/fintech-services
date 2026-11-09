@@ -120,6 +120,35 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   }
 
 
+  if (currentPath === '/payment/paypal/return' || currentPath === '/payment/paypal/cancel') {
+    const wasCancelled = currentPath.endsWith('/cancel');
+    return (
+      <main className="page-shell login-page">
+        <header className="topbar">
+          <a className="brand" href="/" aria-label="Fintech home" onClick={event => event.preventDefault()}>
+            <BrandMark />
+            <span>fintech<span className="brand-period">.</span></span>
+          </a>
+        </header>
+        <section className="form-panel login-form-panel">
+          <div className="form-card login-card">
+            <div className="form-heading">
+              <div className="form-step">PAYPAL SANDBOX</div>
+              <h2>{wasCancelled ? 'Checkout cancelled' : 'PayPal approval received'}</h2>
+              <p>{wasCancelled
+                ? 'You cancelled the PayPal approval process. No payment has been captured.'
+                : 'PayPal has returned you to the application. The order still needs to be captured and verified before it can be marked as paid.'}</p>
+            </div>
+            <button className="submit-button" type="button" onClick={() => {
+              window.history.replaceState(null, '', '/login');
+              setCurrentPath('/login');
+            }}>Return to sign in <span aria-hidden="true">→</span></button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const transactionDetailsMatch = currentPath.match(/^\/transactions\/([^/]+)$/);
 
   if (isAuthenticated && transactionDetailsMatch && transactionDetailsMatch[1] !== 'new') {

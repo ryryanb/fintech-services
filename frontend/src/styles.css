@@ -717,3 +717,79 @@ form { display: grid; gap: 18px; }
   .payment-form .record-form-actions { align-items: stretch; flex-direction: column-reverse; }
   .payment-form .record-form-actions .submit-button { width: 100%; min-width: 0; }
 }
+
+
+/* PAY-002: payment provider selection */
+.provider-selector {
+  min-width: 0;
+  margin: 0 0 25px;
+  padding: 0;
+  border: 0;
+}
+.provider-selector legend {
+  margin-bottom: 12px;
+  color: #34425a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.provider-selector legend span { color: #d45e50; }
+.provider-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.provider-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid #dfe4ee;
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.provider-option-selected {
+  border-color: #7784ee;
+  background: #f8f9ff;
+  box-shadow: 0 0 0 2px #5366e812;
+}
+.provider-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.provider-option:focus-within { outline: 2px solid #8d9af6; outline-offset: 3px; }
+.provider-option-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #635bff;
+  color: #fff;
+  font: 800 20px 'Manrope', sans-serif;
+}
+.provider-option-mark-paypal { background: #eaf1ff; color: #1555a5; }
+.provider-option-copy { display: grid; gap: 5px; min-width: 0; }
+.provider-option-copy strong { color: #293750; font-size: 12px; }
+.provider-option-copy small { color: #8792a5; font-size: 10px; line-height: 1.4; }
+.provider-option-check {
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 800;
+}
+.provider-option-unavailable { background: #fafbfc; cursor: not-allowed; opacity: .72; }
+.provider-coming-soon {
+  margin-left: auto;
+  color: #7d8799;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.provider-help { display: block; margin-top: 10px; color: #8792a5; font-size: 10px; line-height: 1.55; }
+@media (max-width: 600px) {
+  .provider-options { grid-template-columns: minmax(0, 1fr); }
+}

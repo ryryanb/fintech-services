@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import com.ryanbondoc.fintech.payment.domain.PaymentProvider;
+
 public record CreateCheckoutRequest(
         @NotNull
         @DecimalMin(value = "0.50", message = "Amount must be at least 0.50")
@@ -18,7 +20,17 @@ public record CreateCheckoutRequest(
         String currency,
         @NotBlank
         @Size(max = 120)
-        String description) {
+        String description,
+        @Pattern(regexp = "(?i)STRIPE|PAYPAL", message = "Provider must be STRIPE or PAYPAL")
+        String provider) {
+    public CreateCheckoutRequest(BigDecimal amount, String currency, String description) {
+        this(amount, currency, description, "STRIPE");
+    }
+
+    public PaymentProvider normalizedProvider() {
+        return provider == null || provider.isBlank() ? PaymentProvider.STRIPE : PaymentProvider.valueOf(provider.toUpperCase());
+    }
+
     public String normalizedCurrency() {
         return currency == null || currency.isBlank() ? "USD" : currency.toUpperCase();
     }

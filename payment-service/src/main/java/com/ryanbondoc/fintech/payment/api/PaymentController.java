@@ -28,14 +28,14 @@ public class PaymentController {
     }
 
     @Operation(
-            summary = "Create a Stripe Checkout session",
-            description = "Creates a pending payment for the authenticated customer and returns its Stripe-hosted Checkout URL.",
+            summary = "Create a payment checkout",
+            description = "Creates a pending payment using the selected provider and returns its hosted checkout approval URL.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Checkout session created"),
             @ApiResponse(responseCode = "400", description = "Invalid checkout request"),
             @ApiResponse(responseCode = "401", description = "Authentication required"),
-            @ApiResponse(responseCode = "502", description = "Stripe Checkout session could not be created")
+            @ApiResponse(responseCode = "502", description = "The payment provider could not create checkout")
     })
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> createCheckout(

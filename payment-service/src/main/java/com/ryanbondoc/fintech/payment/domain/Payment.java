@@ -35,8 +35,15 @@ public class Payment {
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PaymentProvider provider;
+
     @Column(name = "stripe_session_id", length = 255, unique = true)
     private String stripeSessionId;
+
+    @Column(name = "paypal_order_id", length = 255, unique = true)
+    private String paypalOrderId;
 
     @Column(name = "checkout_url", length = 2048)
     private String checkoutUrl;
@@ -50,12 +57,17 @@ public class Payment {
     protected Payment() { }
 
     public Payment(String customerId, BigDecimal amount, String currency, String description) {
+        this(customerId, amount, currency, description, PaymentProvider.STRIPE);
+    }
+
+    public Payment(String customerId, BigDecimal amount, String currency, String description, PaymentProvider provider) {
         this.id = UUID.randomUUID();
         this.customerId = customerId;
         this.amount = amount;
         this.currency = currency.toUpperCase();
         this.description = description;
         this.status = PaymentStatus.PENDING;
+        this.provider = provider;
     }
 
     @PrePersist
@@ -70,9 +82,18 @@ public class Payment {
         updatedAt = Instant.now();
     }
 
-    public void attachCheckoutSession(String sessionId, String url) {
-        this.stripeSessionId = sessionId;
+    public void attachCheckoutDetails(String providerReference, String url) {
+        if (provider == PaymentProvider.STRIPE) {
+            this.stripeSessionId = providerReference;
+        } else if (provider == PaymentProvider.PAYPAL) {
+            this.paypalOrderId = providerReference;
+        }
         this.checkoutUrl = url;
+    }
+
+    public void attachCheckoutSession(String sessionId, String url) {
+        this.provider = PaymentProvider.STRIPE;
+        attachCheckoutDetails(sessionId, url);
     }
 
     public void markFailed() {
@@ -85,7 +106,9 @@ public class Payment {
     public String getCurrency() { return currency; }
     public String getDescription() { return description; }
     public PaymentStatus getStatus() { return status; }
+    public PaymentProvider getProvider() { return provider; }
     public String getStripeSessionId() { return stripeSessionId; }
+    public String getPaypalOrderId() { return paypalOrderId; }
     public String getCheckoutUrl() { return checkoutUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

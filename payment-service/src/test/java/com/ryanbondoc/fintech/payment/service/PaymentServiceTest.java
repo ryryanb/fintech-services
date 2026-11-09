@@ -11,9 +11,9 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,6 +21,7 @@ import com.ryanbondoc.fintech.payment.api.CheckoutResponse;
 import com.ryanbondoc.fintech.payment.api.CreateCheckoutRequest;
 import com.ryanbondoc.fintech.payment.domain.Payment;
 import com.ryanbondoc.fintech.payment.domain.PaymentStatus;
+import com.ryanbondoc.fintech.payment.domain.PaymentProvider;
 import com.ryanbondoc.fintech.payment.repository.PaymentRepository;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutGateway;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutSessionDetails;
@@ -32,16 +33,23 @@ class PaymentServiceTest {
     private PaymentRepository paymentRepository;
 
     @Mock
-    private CheckoutGateway checkoutGateway;
+    private CheckoutGateway stripeCheckoutGateway;
 
-    @InjectMocks
+    @Mock
+    private CheckoutGateway paypalCheckoutGateway;
+
     private PaymentService paymentService;
+
+    @BeforeEach
+    void setUp() {
+        paymentService = new PaymentService(paymentRepository, stripeCheckoutGateway, paypalCheckoutGateway);
+    }
 
     @Test
     void initiateCheckoutPersistsPendingPaymentAndReturnsStripeUrl() {
         when(paymentRepository.save(any(Payment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(checkoutGateway.createSession(any(Payment.class)))
+        when(stripeCheckoutGateway.createSession(any(Payment.class)))
                 .thenReturn(new CheckoutSessionDetails("cs_test_123", "https://checkout.stripe.com/c/pay/cs_test_123"));
 
         CheckoutResponse response = paymentService.initiateCheckout(
@@ -60,7 +68,7 @@ class PaymentServiceTest {
     void initiateCheckoutMarksPaymentFailedWhenStripeRejectsSessionCreation() {
         when(paymentRepository.save(any(Payment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(checkoutGateway.createSession(any(Payment.class)))
+        when(stripeCheckoutGateway.createSession(any(Payment.class)))
                 .thenThrow(new StripeCheckoutException("Stripe unavailable", new RuntimeException()));
 
         assertThrows(StripeCheckoutException.class, () -> paymentService.initiateCheckout(
@@ -73,8 +81,28 @@ class PaymentServiceTest {
     }
 
     @Test
+    void initiateCheckoutUsesPayPalGatewayWhenPayPalIsSelected() {
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(paypalCheckoutGateway.createSession(any(Payment.class)))
+                .thenReturn(new CheckoutSessionDetails("PAYPAL-ORDER-123", "https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL-ORDER-123"));
+
+        CheckoutResponse response = paymentService.initiateCheckout(
+                "customer-123",
+                new CreateCheckoutRequest(new BigDecimal("100.00"), "PHP", "Demo purchase", "PAYPAL"));
+
+        assertEquals(PaymentProvider.PAYPAL, response.provider());
+        assertEquals(PaymentStatus.PENDING, response.status());
+        assertEquals("https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL-ORDER-123", response.checkoutUrl());
+        ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
+        verify(paymentRepository, times(2)).save(captor.capture());
+        assertEquals("PAYPAL-ORDER-123", captor.getAllValues().get(1).getPaypalOrderId());
+        verify(paypalCheckoutGateway).createSession(any(Payment.class));
+    }
+
+    @Test
     void doesNotMarkPaymentFailedWhenSavingSuccessfulStripeSessionFails() {
-        when(checkoutGateway.createSession(any(Payment.class)))
+        when(stripeCheckoutGateway.createSession(any(Payment.class)))
                 .thenReturn(new CheckoutSessionDetails("cs_test_456", "https://checkout.stripe.com/c/pay/cs_test_456"));
         when(paymentRepository.save(any(Payment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0))
