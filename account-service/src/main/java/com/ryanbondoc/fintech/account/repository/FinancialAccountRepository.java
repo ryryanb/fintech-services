@@ -16,4 +16,8 @@ public interface FinancialAccountRepository
     Optional<FinancialAccount> findByIdAndCustomerId(UUID accountId, UUID customerId);
 
     boolean existsByIdAndCustomerId(UUID accountId, UUID customerId);
+
+    Optional<FinancialAccount> findByProviderAccountId(String providerAccountId);
+
+    List<FinancialAccount> findByExternalConnectionId(UUID externalConnectionId);
 }
