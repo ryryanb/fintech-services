@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,5 +73,24 @@ class PaymentServiceTest {
         ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
         verify(paymentRepository, times(2)).save(captor.capture());
         assertEquals(PaymentStatus.FAILED, captor.getAllValues().get(1).getStatus());
+    }
+
+    @Test
+    void doesNotMarkPaymentFailedWhenSavingSuccessfulStripeSessionFails() {
+        when(checkoutGateway.createSession(any(Payment.class)))
+                .thenReturn(new CheckoutSessionDetails("cs_test_456", "https://checkout.stripe.com/c/pay/cs_test_456"));
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0))
+                .thenThrow(new RuntimeException("database unavailable"));
+
+        assertThrows(RuntimeException.class, () -> paymentService.initiateCheckout(
+                "customer-123",
+                new CreateCheckoutRequest(new BigDecimal("25.00"), "USD", "Demo purchase")));
+
+        ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
+        verify(paymentRepository, times(2)).save(captor.capture());
+        Payment paymentAfterStripeSuccess = captor.getAllValues().get(1);
+        assertEquals(PaymentStatus.PENDING, paymentAfterStripeSuccess.getStatus());
+        assertEquals("cs_test_456", paymentAfterStripeSuccess.getStripeSessionId());
     }
 }
