@@ -42,7 +42,7 @@ public class StripeCheckoutGateway implements CheckoutGateway {
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(frontendBaseUrl + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
+                .setSuccessUrl(frontendBaseUrl + "/payment/success?payment_id=" + payment.getId() + "&session_id={CHECKOUT_SESSION_ID}")
                 .setCancelUrl(frontendBaseUrl + "/payment/cancel?payment_id=" + payment.getId())
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
