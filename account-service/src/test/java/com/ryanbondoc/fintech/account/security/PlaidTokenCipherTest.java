@@ -51,4 +51,26 @@ class PlaidTokenCipherTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("32 bytes");
     }
+    @Test
+    void shouldRejectTamperedCiphertext() {
+        PlaidTokenCipher cipher = new PlaidTokenCipher(KEY);
+        String encrypted = cipher.encrypt("access-sandbox-test-token");
+        byte[] payload = Base64.getDecoder().decode(encrypted);
+        payload[payload.length - 1] ^= 0x01;
+        String tampered = Base64.getEncoder().encodeToString(payload);
+
+        assertThatThrownBy(() -> cipher.decrypt(tampered))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unable to decrypt stored Plaid access token.");
+    }
+
+    @Test
+    void shouldRejectMalformedCiphertext() {
+        PlaidTokenCipher cipher = new PlaidTokenCipher(KEY);
+
+        assertThatThrownBy(() -> cipher.decrypt("not-valid-base64!"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unable to decrypt stored Plaid access token.");
+    }
+
 }
