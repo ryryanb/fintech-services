@@ -368,6 +368,7 @@ export default function FinancialTransactions({
         )}
         {!loading && !error && (
           <>
+            {importMessage && <p className="profile-message" role="status" aria-live="polite">{importMessage}</p>}
             <section className="form-card spending-summary-card" aria-labelledby="spending-summary-title">
               <div className="spending-summary-heading">
                 <div>
