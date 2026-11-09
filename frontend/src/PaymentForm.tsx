@@ -113,7 +113,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
       }
 
       sessionStorage.removeItem('paymentCheckoutIdempotencyKey');
-      setIdempotencyKey(null); sessionStorage.removeItem('paymentCheckoutIdempotencyKey');
+      setIdempotencyKey(null);
       window.location.assign(checkoutUrl.toString());
     } catch (cause) {
       setError(cause instanceof TypeError
@@ -165,7 +165,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                   name="payment-provider"
                   value="STRIPE"
                   checked={provider === 'STRIPE'}
-                  onChange={() => { setProvider('STRIPE'); setIdempotencyKey(null); }}
+                  onChange={() => { setProvider('STRIPE'); setIdempotencyKey(null); sessionStorage.removeItem('paymentCheckoutIdempotencyKey'); }}
                   disabled={submitting}
                 />
                 <span className="provider-option-mark" aria-hidden="true">S</span>
