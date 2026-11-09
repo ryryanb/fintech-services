@@ -698,3 +698,22 @@ form { display: grid; gap: 18px; }
 .profile-save-notice { border: 1px solid #c9ead9; background: #f1fbf5; color: #236943; }
 .profile-save-error { border: 1px solid #f3c5c2; background: #fff6f5; color: #a4261d; }
 @media (max-width: 480px) { .profile-section-heading { align-items: flex-start; } .profile-edit-actions { flex-direction: column; align-items: stretch; } .profile-edit-actions .submit-button { width: 100%; flex: auto; } }
+
+
+/* FE-043: initiate a Stripe-hosted payment */
+.payment-content { max-width: 900px; margin: 0 auto; padding: 52px 0 30px; }
+.payment-form { max-width: none; padding: clamp(22px, 4vw, 34px); }
+.payment-form-summary { display: flex; align-items: center; gap: 14px; padding: 17px; margin-bottom: 25px; border: 1px solid #e5e9f6; border-radius: 12px; background: #fafbff; }
+.payment-form-summary-icon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px; background: #edf0ff; color: var(--accent); font-size: 22px; font-weight: 700; }
+.payment-form-summary strong { color: #293750; font-size: 13px; }
+.payment-form-summary p { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.payment-form .record-form-grid { margin-top: 4px; }
+.payment-form .record-field small { display: block; line-height: 1.55; }
+.payment-form-disclaimer { margin: 19px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.payment-form .record-form-actions .submit-button { width: auto; min-width: 230px; }
+@media (max-width: 600px) {
+  .payment-content { padding-top: 30px; }
+  .payment-form { padding: 21px 17px; }
+  .payment-form .record-form-actions { align-items: stretch; flex-direction: column-reverse; }
+  .payment-form .record-form-actions .submit-button { width: 100%; min-width: 0; }
+}
