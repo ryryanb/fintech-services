@@ -109,9 +109,9 @@ class PaymentServiceTest {
 
     @Test
     void capturePayPalPaymentMarksPaymentSucceededOnlyAfterMatchingCapture() {
-        UUID paymentId = UUID.randomUUID();
         Payment payment = new Payment("customer-123", new BigDecimal("100.00"), "PHP",
                 "Demo purchase", PaymentProvider.PAYPAL);
+        UUID paymentId = payment.getId();
         payment.attachCheckoutDetails("PAYPAL-ORDER-123", "https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL-ORDER-123");
         when(paymentRepository.findByIdAndCustomerId(paymentId, "customer-123")).thenReturn(Optional.of(payment));
         when(paypalGateway.captureOrder("PAYPAL-ORDER-123")).thenReturn(
