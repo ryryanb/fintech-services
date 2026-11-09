@@ -203,6 +203,10 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
             window.history.pushState(null, '', '/transactions/new');
             setCurrentPath('/transactions/new');
           }}
+          onInitiatePayment={() => {
+            window.history.pushState(null, '', '/payments/new');
+            setCurrentPath('/payments/new');
+          }}
           onViewTransaction={(transactionId) => {
             window.history.pushState(null, '', `/transactions/${encodeURIComponent(transactionId)}`);
             setCurrentPath(`/transactions/${encodeURIComponent(transactionId)}`);
