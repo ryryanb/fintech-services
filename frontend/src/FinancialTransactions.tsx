@@ -30,6 +30,7 @@ type FinancialTransactionsProps = {
   onBackToProfile: () => void;
   onViewAccounts: () => void;
   onRecordTransaction: () => void;
+  onInitiatePayment: () => void;
   onViewTransaction: (transactionId: string) => void;
   onSignOut: () => void;
   onManageCategories: () => void;
@@ -135,6 +136,7 @@ export default function FinancialTransactions({
   onBackToProfile,
   onViewAccounts,
   onRecordTransaction,
+  onInitiatePayment,
   onViewTransaction,
   onSignOut,
   onManageCategories,
@@ -290,6 +292,7 @@ export default function FinancialTransactions({
           <button className="text-link" type="button" onClick={onViewAccounts}>Accounts</button>
           <button className="text-link" type="button" onClick={onManageCategories}>Spending categories</button>
           <button className="text-link" type="button" onClick={onRecordTransaction}>Record transaction</button>
+          <button className="text-link" type="button" onClick={onInitiatePayment}>Make a payment</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </nav>
       </header>
