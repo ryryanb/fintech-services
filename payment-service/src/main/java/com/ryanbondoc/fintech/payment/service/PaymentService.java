@@ -25,6 +25,13 @@ public class PaymentService {
         this.paypalCheckoutGateway = paypalCheckoutGateway;
     }
 
+    private CheckoutGateway gatewayFor(PaymentProvider provider) {
+        return switch (provider) {
+            case STRIPE -> stripeCheckoutGateway;
+            case PAYPAL -> paypalCheckoutGateway;
+        };
+    }
+
     public CheckoutResponse initiateCheckout(String customerId, CreateCheckoutRequest request) {
         Payment payment = paymentRepository.save(new Payment(
                 customerId,
@@ -41,7 +48,7 @@ public class PaymentService {
             throw exception;
         }
 
-        // Persisting the Stripe response is deliberately outside the Stripe failure
+        // Persisting the provider response is deliberately outside the provider failure
         // handler. Stripe may already have created a payable session; a database
         // failure here must not incorrectly mark that payment as FAILED.
         payment.attachCheckoutDetails(session.sessionId(), session.checkoutUrl());
