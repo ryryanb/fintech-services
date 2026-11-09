@@ -352,21 +352,21 @@ Future development will extend the platform with transaction processing, payment
 The current repository contains five Spring Boot service modules:
 
 ```text
-                         FinTech Services
-                                │
-       ┌────────────┬──────────────┬──────────────┐
-       ▼            ▼              ▼              ▼                 ▼
-  Auth Service Customer Service Account Service Transaction Service Payment Service
-       │            │              │              │
-       ▼            ▼              ▼              ▼
-   Auth Data   Customer Data   Account Data   Transaction Data
-       └────────────┴──────────────┴──────────────┘
-                       PostgreSQL
+                           FinTech Services
+                                  |
+       +--------------+--------------+--------------+--------------+--------------+
+       |              |              |              |              |
+       v              v              v              v              v
+  Auth Service  Customer Service Account Service Transaction Service Payment Service
+       |              |              |              |              |
+       v              v              v              v              v
+   Auth Data     Customer Data   Account Data  Transaction Data  Payment Data
+       +--------------+--------------+--------------+--------------+--------------+
+                                  |
+                              PostgreSQL
 ```
 
-Each service owns its own application logic and persistence model.
-
-The architecture is intentionally being developed incrementally rather than introducing infrastructure before it is required.
+Each service owns its own application logic and persistence model, with a separate PostgreSQL database.
 
 ---
 
@@ -582,7 +582,7 @@ Content-Type: application/json
 }
 ```
 
-The API responds with HTTP 201 and a payment ID, pending status, and Stripe Checkout URL. Redirect the browser to that URL. The return URLs are `/payment/success` and `/payment/cancel` on the configured frontend base URL.
+The API responds with HTTP 201 and a payment ID, pending status, and Stripe Checkout URL. Redirect the browser to that URL. The amount is accepted from the request for this demonstration; a production purchase flow must derive the payable amount from trusted server-side order/pricing data, not the client. This initial integration uses currencies with two minor-unit decimal places (USD, PHP, EUR, GBP, SGD, AUD, CAD). The return URLs are `/payment/success` and `/payment/cancel` on the configured frontend base URL.
 
 This initial slice only initiates Checkout. A Stripe webhook, signature verification, reconciliation, and authoritative transition to succeeded/cancelled are follow-up work; a browser redirect is not proof of payment.
 
