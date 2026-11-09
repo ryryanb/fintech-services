@@ -14,7 +14,7 @@ public record CreateCheckoutRequest(
         @DecimalMin(value = "0.50", message = "Amount must be at least 0.50")
         @Digits(integer = 10, fraction = 2, message = "Amount must have no more than two decimal places")
         BigDecimal amount,
-        @Pattern(regexp = "[A-Za-z]{3}", message = "Currency must be a three-letter ISO code")
+        @Pattern(regexp = "(?i)USD|PHP|EUR|GBP|SGD|AUD|CAD", message = "Currency must be one of USD, PHP, EUR, GBP, SGD, AUD, or CAD")
         String currency,
         @NotBlank
         @Size(max = 120)
