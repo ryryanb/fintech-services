@@ -26,17 +26,23 @@ public class PaymentService {
                 request.normalizedCurrency(),
                 request.description().trim()));
 
+        final CheckoutSessionDetails session;
         try {
-            CheckoutSessionDetails session = checkoutGateway.createSession(payment);
-            payment.attachCheckoutSession(session.sessionId(), session.checkoutUrl());
-            payment = paymentRepository.save(payment);
-            return new CheckoutResponse(
-                    payment.getId(), payment.getAmount(), payment.getCurrency(),
-                    payment.getDescription(), payment.getStatus(), payment.getCheckoutUrl(), payment.getCreatedAt());
+            session = checkoutGateway.createSession(payment);
         } catch (RuntimeException exception) {
             payment.markFailed();
             paymentRepository.save(payment);
             throw exception;
         }
+
+        // Persisting the Stripe response is deliberately outside the Stripe failure
+        // handler. Stripe may already have created a payable session; a database
+        // failure here must not incorrectly mark that payment as FAILED.
+        payment.attachCheckoutSession(session.sessionId(), session.checkoutUrl());
+        payment = paymentRepository.save(payment);
+
+        return new CheckoutResponse(
+                payment.getId(), payment.getAmount(), payment.getCurrency(),
+                payment.getDescription(), payment.getStatus(), payment.getCheckoutUrl(), payment.getCreatedAt());
     }
 }
