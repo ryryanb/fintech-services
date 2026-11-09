@@ -18,6 +18,7 @@ import com.ryanbondoc.fintech.account.dto.PlaidConnectionResponse;
 import com.ryanbondoc.fintech.account.dto.PlaidExchangeRequest;
 import com.ryanbondoc.fintech.account.dto.PlaidExchangeResponse;
 import com.ryanbondoc.fintech.account.dto.PlaidLinkTokenResponse;
+import com.ryanbondoc.fintech.account.dto.PlaidTransactionSyncResponse;
 import com.ryanbondoc.fintech.account.security.AccountAuthorizationService;
 import com.ryanbondoc.fintech.account.service.PlaidIntegrationService;
 
@@ -55,6 +56,14 @@ public class PlaidConnectionController {
     public ResponseEntity<List<PlaidConnectionResponse>> getConnections(Authentication authentication) {
         UUID customerId = authorizationService.getAuthenticatedCustomerId(authentication);
         return ResponseEntity.ok(plaidIntegrationService.getConnections(customerId));
+    }
+
+    @Operation(summary = "Import new and changed transactions from a Plaid connection")
+    @PostMapping("/{connectionId}/transactions/sync")
+    public ResponseEntity<PlaidTransactionSyncResponse> syncTransactions(
+            @PathVariable UUID connectionId, Authentication authentication) {
+        UUID customerId = authorizationService.getAuthenticatedCustomerId(authentication);
+        return ResponseEntity.ok(plaidIntegrationService.syncTransactions(customerId, connectionId, authentication));
     }
 
     @Operation(summary = "Disconnect an external Plaid account")

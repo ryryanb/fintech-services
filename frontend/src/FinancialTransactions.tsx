@@ -12,6 +12,8 @@ type FinancialAccount = {
   status: string;
 };
 
+type PlaidConnection = { id: string; institutionName: string | null; status: string };
+
 type FinancialTransaction = {
   id: string;
   accountId: string;
@@ -143,6 +145,9 @@ export default function FinancialTransactions({
 }: FinancialTransactionsProps) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [plaidConnections, setPlaidConnections] = useState<PlaidConnection[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -169,6 +174,17 @@ export default function FinancialTransactions({
     }
     const customerAccounts = accountPayload as FinancialAccount[];
     setAccounts(customerAccounts);
+    try {
+      const connectionsResponse = await fetch('/api/accounts/connections', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, signal,
+      });
+      if (connectionsResponse.ok) {
+        const connectionsPayload: unknown = await connectionsResponse.json();
+        setPlaidConnections(Array.isArray(connectionsPayload) ? connectionsPayload.filter((item): item is PlaidConnection =>
+          typeof item === 'object' && item !== null && typeof (item as PlaidConnection).id === 'string' && typeof (item as PlaidConnection).status === 'string'
+        ) : []);
+      } else setPlaidConnections([]);
+    } catch { setPlaidConnections([]); }
 
     const results = await Promise.all(customerAccounts.map(async account => {
       const response = await fetch(`/api/transactions?accountId=${encodeURIComponent(account.id)}`, {
@@ -208,6 +224,33 @@ export default function FinancialTransactions({
       });
     return () => controller.abort();
   }, [loadTransactions, retry]);
+
+  const importPlaidTransactions = async () => {
+    const token = getAccessToken();
+    if (!token) { setImportMessage('Please sign in again before importing transactions.'); return; }
+    const activeConnections = plaidConnections.filter(connection => connection.status.toUpperCase() === 'ACTIVE');
+    if (activeConnections.length === 0) { setImportMessage('No active Plaid connections are available to import.'); return; }
+    setImporting(true);
+    setImportMessage('');
+    try {
+      let added = 0, updated = 0, removed = 0;
+      for (const connection of activeConnections) {
+        const response = await fetch(`/api/accounts/connections/${encodeURIComponent(connection.id)}/transactions/sync`, {
+          method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(responseError(response.status));
+        const result: unknown = await response.json();
+        if (typeof result !== 'object' || result === null || !('added' in result) || !('updated' in result) || !('removed' in result)) {
+          throw new Error('The Account Service returned an unexpected import summary.');
+        }
+        added += Number(result.added); updated += Number(result.updated); removed += Number(result.removed);
+      }
+      setImportMessage(`Import complete: ${added} added, ${updated} updated, ${removed} removed.`);
+      setRetry(count => count + 1);
+    } catch (cause) {
+      setImportMessage(cause instanceof Error ? cause.message : 'We could not import bank transactions.');
+    } finally { setImporting(false); }
+  };
 
   const spendingSummary = useMemo(() => {
     const now = new Date();
@@ -305,7 +348,7 @@ export default function FinancialTransactions({
             <p className="intro-copy">A clear view of your recent financial activity across your accounts.</p>
           </div>
           {!loading && !error && (
-            <div className="transactions-heading-actions"><button className="secondary-button" type="button" onClick={() => setRetry(count => count + 1)}>Refresh activity</button><button className="submit-button transaction-record-button" type="button" onClick={onRecordTransaction}>Record transaction</button></div>
+            <div className="transactions-heading-actions"><button className="secondary-button" type="button" onClick={() => setRetry(count => count + 1)}>Refresh activity</button>{plaidConnections.some(connection => connection.status.toUpperCase() === 'ACTIVE') && <button className="secondary-button" type="button" onClick={importPlaidTransactions} disabled={importing}>{importing ? 'Importing…' : 'Import bank transactions'}</button>}<button className="submit-button transaction-record-button" type="button" onClick={onRecordTransaction}>Record transaction</button></div>
           )}
         </div>
 
@@ -325,6 +368,7 @@ export default function FinancialTransactions({
         )}
         {!loading && !error && (
           <>
+            {importMessage && <p className="profile-message" role="status" aria-live="polite">{importMessage}</p>}
             <section className="form-card spending-summary-card" aria-labelledby="spending-summary-title">
               <div className="spending-summary-heading">
                 <div>

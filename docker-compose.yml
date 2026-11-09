@@ -155,10 +155,12 @@ services:
       PLAID_CLIENT_ID: ${PLAID_CLIENT_ID:-}
       PLAID_SECRET: ${PLAID_SECRET:-}
       PLAID_TOKEN_ENCRYPTION_KEY: ${PLAID_TOKEN_ENCRYPTION_KEY:-}
+      TRANSACTION_SERVICE_BASE_URL: http://transaction-service:8087
     ports:
       - "8083:8083"
     depends_on:
       - account-db
+      - transaction-service
     networks:
       - fintech-network
 

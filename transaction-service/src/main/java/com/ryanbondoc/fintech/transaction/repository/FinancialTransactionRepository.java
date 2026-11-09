@@ -9,7 +9,7 @@ import java.util.UUID;
 public interface FinancialTransactionRepository
         extends JpaRepository<FinancialTransaction, UUID> {
 
-    List<FinancialTransaction> findByAccountIdOrderByTransactionDateDesc(
-            UUID accountId
-    );
+    List<FinancialTransaction> findByAccountIdOrderByTransactionDateDesc(UUID accountId);
+
+    java.util.Optional<FinancialTransaction> findByProviderTransactionId(String providerTransactionId);
 }

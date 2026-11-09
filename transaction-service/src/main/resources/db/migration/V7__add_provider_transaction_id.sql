@@ -1,0 +1,2 @@
+ALTER TABLE financial_transactions ADD COLUMN provider_transaction_id VARCHAR(150);
+CREATE UNIQUE INDEX uq_financial_transactions_provider_transaction_id ON financial_transactions(provider_transaction_id) WHERE provider_transaction_id IS NOT NULL;
