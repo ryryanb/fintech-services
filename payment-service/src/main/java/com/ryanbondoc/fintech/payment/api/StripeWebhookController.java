@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ryanbondoc.fintech.payment.service.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
+import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -50,7 +51,16 @@ public class StripeWebhookController {
         }
         if ("checkout.session.completed".equals(event.getType())
                 || "checkout.session.async_payment_succeeded".equals(event.getType())) {
-            StripeObject object = event.getDataObjectDeserializer().getObject().orElse(null);
+            EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+            StripeObject object = deserializer.getObject().orElse(null);
+            if (object == null) {
+                try {
+                    object = deserializer.deserializeUnsafe();
+                } catch (Exception exception) {
+                    log.error("Unable to deserialize verified Stripe webhook event {}", event.getId(), exception);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                }
+            }
             if (!(object instanceof Session session) || !"paid".equalsIgnoreCase(session.getPaymentStatus())) {
                 return ResponseEntity.ok().build();
             }
