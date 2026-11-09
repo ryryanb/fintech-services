@@ -5,8 +5,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +18,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ryanbondoc.fintech.payment.domain.Payment;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutGateway;
 import com.ryanbondoc.fintech.payment.stripe.CheckoutSessionDetails;
+
+import tools.jackson.databind.JsonNode;
 
 @Component("paypalCheckoutGateway")
 public class PayPalCheckoutGateway implements CheckoutGateway {
@@ -47,7 +47,8 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
     @Override
     public CheckoutSessionDetails createSession(Payment payment) {
         if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
-            throw new IllegalStateException("PayPal sandbox is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.");
+            throw new IllegalStateException(
+                    "PayPal sandbox is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.");
         }
         try {
             AccessTokenResponse token = paypalClient.post()
@@ -89,11 +90,13 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
             if (order == null || order.id() == null || order.id().isBlank()) {
                 throw new IllegalStateException("PayPal did not return an order ID.");
             }
-            String approvalUrl = order.links() == null ? null : order.links().stream()
-                    .filter(link -> "approve".equalsIgnoreCase(link.rel()) || "payer-action".equalsIgnoreCase(link.rel()))
-                    .map(PayPalLink::href)
-                    .filter(href -> href != null && !href.isBlank())
-                    .findFirst().orElse(null);
+            String approvalUrl = order.links() == null ? null
+                    : order.links().stream()
+                            .filter(link -> "approve".equalsIgnoreCase(link.rel())
+                                    || "payer-action".equalsIgnoreCase(link.rel()))
+                            .map(PayPalLink::href)
+                            .filter(href -> href != null && !href.isBlank())
+                            .findFirst().orElse(null);
             if (!isSandboxApprovalUrl(approvalUrl)) {
                 throw new IllegalStateException("PayPal did not return a valid sandbox approval URL.");
             }
@@ -104,7 +107,6 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
             throw new PayPalCheckoutException("Unable to create PayPal Checkout order.", exception);
         }
     }
-
 
     public CapturedPayPalPayment captureOrder(String orderId) {
         if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
@@ -147,27 +149,32 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
         }
     }
 
-    public record CapturedPayPalPayment(String orderId, String captureId, String amount, String currency) { }
+    public record CapturedPayPalPayment(String orderId, String captureId, String amount, String currency) {
+    }
 
     private boolean isSandboxApprovalUrl(String url) {
-        if (url == null) return false;
+        if (url == null)
+            return false;
         try {
             URI uri = URI.create(url);
             String host = uri.getHost();
             return "https".equalsIgnoreCase(uri.getScheme())
                     && ("www.sandbox.paypal.com".equalsIgnoreCase(host)
-                    || "sandbox.paypal.com".equalsIgnoreCase(host));
+                            || "sandbox.paypal.com".equalsIgnoreCase(host));
         } catch (IllegalArgumentException exception) {
             return false;
         }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record AccessTokenResponse(@JsonProperty("access_token") String accessToken) { }
+    private record AccessTokenResponse(@JsonProperty("access_token") String accessToken) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record PayPalOrderResponse(String id, List<PayPalLink> links) { }
+    private record PayPalOrderResponse(String id, List<PayPalLink> links) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record PayPalLink(String href, String rel) { }
+    private record PayPalLink(String href, String rel) {
+    }
 }

@@ -12,6 +12,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.StripeError;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
 
 @Component
@@ -62,7 +63,11 @@ public class StripeCheckoutGateway implements CheckoutGateway {
                 .build();
 
         try {
-            Session session = Session.create(params);
+            RequestOptions requestOptions = RequestOptions.builder()
+                    .setApiKey(secretKey)
+                    .setIdempotencyKey(payment.getId().toString())
+                    .build();
+            Session session = Session.create(params, requestOptions);
             if (session.getUrl() == null || session.getUrl().isBlank()) {
                 throw new IllegalStateException("Stripe did not return a Checkout URL.");
             }
