@@ -50,6 +50,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
   const [description, setDescription] = useState('Demo purchase');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,6 +77,8 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
       return;
     }
 
+    const requestKey = idempotencyKey ?? crypto.randomUUID();
+    setIdempotencyKey(requestKey);
     setSubmitting(true);
     try {
       const response = await fetch('/api/payments/checkout', {
@@ -84,6 +87,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'Idempotency-Key': requestKey,
         },
         body: JSON.stringify({ amount: numericAmount, currency, description: cleanDescription, provider }),
       });
@@ -157,7 +161,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                   name="payment-provider"
                   value="STRIPE"
                   checked={provider === 'STRIPE'}
-                  onChange={() => setProvider('STRIPE')}
+                  onChange={() => { setProvider('STRIPE'); setIdempotencyKey(null); }}
                   disabled={submitting}
                 />
                 <span className="provider-option-mark" aria-hidden="true">S</span>
@@ -168,7 +172,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                 <span className="provider-option-check" aria-hidden="true">✓</span>
               </label>
               <label className={`provider-option ${provider === 'PAYPAL' ? 'provider-option-selected' : ''}`}>
-                <input type="radio" name="payment-provider" value="PAYPAL" checked={provider === 'PAYPAL'} onChange={() => setProvider('PAYPAL')} disabled={submitting} />
+                <input type="radio" name="payment-provider" value="PAYPAL" checked={provider === 'PAYPAL'} onChange={() => { setProvider('PAYPAL'); setIdempotencyKey(null); }} disabled={submitting} />
                 <span className="provider-option-mark provider-option-mark-paypal" aria-hidden="true">P</span>
                 <span className="provider-option-copy">
                   <strong>PayPal</strong>
@@ -191,7 +195,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                 step="0.01"
                 inputMode="decimal"
                 value={amount}
-                onChange={event => setAmount(event.target.value)}
+                onChange={event => { setAmount(event.target.value); setIdempotencyKey(null); }}
                 placeholder="0.00"
                 disabled={submitting}
                 autoComplete="off"
@@ -201,7 +205,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
 
             <label className="record-field">
               <span>Currency <span aria-hidden="true">*</span></span>
-              <select value={currency} onChange={event => setCurrency(event.target.value as (typeof supportedCurrencies)[number])} disabled={submitting}>
+              <select value={currency} onChange={event => { setCurrency(event.target.value as (typeof supportedCurrencies)[number]); setIdempotencyKey(null); }} disabled={submitting}>
                 {supportedCurrencies.map(code => <option key={code} value={code}>{code}</option>)}
               </select>
             </label>
@@ -213,7 +217,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                 required
                 maxLength={120}
                 value={description}
-                onChange={event => setDescription(event.target.value)}
+                onChange={event => { setDescription(event.target.value); setIdempotencyKey(null); }}
                 placeholder="What is this payment for?"
                 disabled={submitting}
               />
