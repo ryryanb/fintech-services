@@ -175,6 +175,60 @@ class PaymentServiceTest {
         assertEquals("cs_test_456", payment.getStripeSessionId());
     }
 
+
+    @Test
+    void stripeFailureWebhookMarksOnlyPaymentFailed() {
+        Payment payment = pendingPayment("customer-123", "25.00", "USD", "Demo purchase", PaymentProvider.STRIPE, "checkout-failed");
+        payment.attachCheckoutDetails("cs_test_failed", "https://checkout.stripe.com/c/pay/cs_test_failed");
+        when(paymentRepository.findById(payment.getId())).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        paymentService.updateStripePaymentStatus(payment.getId(), "cs_test_failed", PaymentStatus.FAILED);
+
+        assertEquals(PaymentStatus.FAILED, payment.getStatus());
+        verify(paymentRepository).save(payment);
+    }
+
+    @Test
+    void expiredStripeCheckoutMarksPaymentCancelled() {
+        Payment payment = pendingPayment("customer-123", "25.00", "USD", "Demo purchase", PaymentProvider.STRIPE, "checkout-expired");
+        payment.attachCheckoutDetails("cs_test_expired", "https://checkout.stripe.com/c/pay/cs_test_expired");
+        when(paymentRepository.findById(payment.getId())).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        paymentService.updateStripePaymentStatus(payment.getId(), "cs_test_expired", PaymentStatus.CANCELLED);
+
+        assertEquals(PaymentStatus.CANCELLED, payment.getStatus());
+        verify(paymentRepository).save(payment);
+    }
+
+    @Test
+    void duplicateOrOutOfOrderStripeEventsCannotOverwriteTerminalPaymentStatus() {
+        Payment payment = pendingPayment("customer-123", "25.00", "USD", "Demo purchase", PaymentProvider.STRIPE, "checkout-terminal");
+        payment.attachCheckoutDetails("cs_test_terminal", "https://checkout.stripe.com/c/pay/cs_test_terminal");
+        payment.markSucceeded();
+        when(paymentRepository.findById(payment.getId())).thenReturn(Optional.of(payment));
+
+        paymentService.updateStripePaymentStatus(payment.getId(), "cs_test_terminal", PaymentStatus.FAILED);
+
+        assertEquals(PaymentStatus.SUCCEEDED, payment.getStatus());
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void stripeEventWithMismatchedSessionCannotChangePaymentStatus() {
+        Payment payment = pendingPayment("customer-123", "25.00", "USD", "Demo purchase", PaymentProvider.STRIPE, "checkout-mismatch");
+        payment.attachCheckoutDetails("cs_test_expected", "https://checkout.stripe.com/c/pay/cs_test_expected");
+        when(paymentRepository.findById(payment.getId())).thenReturn(Optional.of(payment));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> paymentService.updateStripePaymentStatus(payment.getId(), "cs_test_other", PaymentStatus.SUCCEEDED));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals(PaymentStatus.PENDING, payment.getStatus());
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
     private Payment pendingPayment(String customerId, String amount, String currency, String description,
             PaymentProvider provider, String key) {
         Payment payment = new Payment(customerId, new BigDecimal(amount), currency, description, provider);
