@@ -31,17 +31,6 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    @Operation(
-            summary = "Create a payment checkout",
-            description = "Creates a pending payment using the selected provider and returns its hosted checkout approval URL.",
-            security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Checkout session created"),
-            @ApiResponse(responseCode = "400", description = "Invalid checkout request"),
-            @ApiResponse(responseCode = "401", description = "Authentication required"),
-            @ApiResponse(responseCode = "502", description = "The payment provider could not create checkout")
-    })
-
     @PostMapping("/{paymentId}/complete/paypal")
     @Operation(summary = "Capture an approved PayPal payment", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<CheckoutResponse> capturePayPalPayment(
@@ -61,6 +50,17 @@ public class PaymentController {
         if (customerId == null || customerId.isBlank()) throw new IllegalStateException("Authenticated token does not contain a customerId claim.");
         return ResponseEntity.ok(paymentService.getPayment(paymentId, customerId));
     }
+
+    @Operation(
+            summary = "Create a payment checkout",
+            description = "Creates a pending payment using the selected provider and returns its hosted checkout approval URL.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Checkout session created"),
+            @ApiResponse(responseCode = "400", description = "Invalid checkout request"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "502", description = "The payment provider could not create checkout")
+    })
 
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> createCheckout(
