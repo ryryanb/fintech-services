@@ -2,6 +2,13 @@ package com.ryanbondoc.fintech.account.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.HashMap;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import com.ryanbondoc.fintech.account.dto.PlaidTransactionSyncResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +45,8 @@ public class PlaidIntegrationService {
     private final String clientId;
     private final String secret;
     private final String baseUrl;
+    private final String transactionServiceBaseUrl;
+    private final RestClient transactionClient = RestClient.create();
     private final RestClient restClient = RestClient.create();
 
     public PlaidIntegrationService(
@@ -47,13 +56,15 @@ public class PlaidIntegrationService {
             @Value("${plaid.client-id:}") String clientId,
             @Value("${plaid.secret:}") String secret,
             @Value("${plaid.base-url:https://sandbox.plaid.com}") String baseUrl,
-            @Value("${plaid.environment:sandbox}") String environment) {
+            @Value("${plaid.environment:sandbox}") String environment,
+            @Value("${transactions.service.base-url:http://localhost:8087}") String transactionServiceBaseUrl) {
         this.accountRepository = accountRepository;
         this.connectionRepository = connectionRepository;
         this.tokenCipher = tokenCipher;
         this.clientId = clientId;
         this.secret = secret;
         this.baseUrl = baseUrl;
+        this.transactionServiceBaseUrl = transactionServiceBaseUrl;
         if (!"sandbox".equalsIgnoreCase(environment)) {
             throw new IllegalStateException("This ACC-008 integration is restricted to Plaid Sandbox.");
         }
@@ -123,6 +134,90 @@ public class PlaidIntegrationService {
             imported.add(toResponse(accountRepository.save(account)));
         }
         return new PlaidExchangeResponse(toResponse(connection), imported);
+    }
+
+
+    @Transactional
+    public PlaidTransactionSyncResponse syncTransactions(UUID customerId, UUID connectionId,
+            Authentication authentication) {
+        ensureConfigured();
+        PlaidConnection connection = connectionRepository.findByIdAndCustomerId(connectionId, customerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plaid connection not found."));
+        if (!"ACTIVE".equals(connection.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This Plaid connection is not active.");
+        }
+        if (!(authentication instanceof JwtAuthenticationToken jwt)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "A valid bearer token is required.");
+        }
+        String bearer = "Bearer " + jwt.getToken().getTokenValue();
+        String accessToken = tokenCipher.decrypt(connection.getEncryptedAccessToken());
+        String cursor = connection.getTransactionsCursor();
+        int added = 0, updated = 0, removed = 0;
+        boolean hasMore;
+        do {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("access_token", accessToken);
+            payload.put("count", 500);
+            if (cursor != null && !cursor.isBlank()) payload.put("cursor", cursor);
+            JsonNode page = plaidPost("/transactions/sync", payload);
+            List<Map<String, Object>> newTransactions = mapPlaidTransactions(page.path("added"));
+            List<Map<String, Object>> changedTransactions = mapPlaidTransactions(page.path("modified"));
+            List<String> removedIds = new ArrayList<>();
+            for (JsonNode item : page.path("removed")) {
+                String id = item.path("transaction_id").asText(null);
+                if (id != null && !id.isBlank()) removedIds.add(id);
+            }
+            Map<String, Object> importPayload = new HashMap<>();
+            importPayload.put("added", newTransactions);
+            importPayload.put("modified", changedTransactions);
+            importPayload.put("removed", removedIds);
+            PlaidTransactionSyncResponse imported = transactionClient.post()
+                    .uri(transactionServiceBaseUrl + "/transactions/import/plaid")
+                    .header(HttpHeaders.AUTHORIZATION, bearer)
+                    .body(importPayload)
+                    .retrieve()
+                    .body(PlaidTransactionSyncResponse.class);
+            if (imported == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "Transaction Service returned an empty import response.");
+            }
+            added += imported.added();
+            updated += imported.updated();
+            removed += imported.removed();
+            cursor = requiredText(page, "next_cursor");
+            hasMore = page.path("has_more").asBoolean(false);
+        } while (hasMore);
+        connection.setTransactionsCursor(cursor);
+        connection.setUpdatedAt(Instant.now());
+        connectionRepository.save(connection);
+        return new PlaidTransactionSyncResponse(added, updated, removed);
+    }
+
+    private List<Map<String, Object>> mapPlaidTransactions(JsonNode transactions) {
+        List<Map<String, Object>> mapped = new ArrayList<>();
+        for (JsonNode transaction : transactions) {
+            String providerAccountId = requiredText(transaction, "account_id");
+            FinancialAccount account = accountRepository.findByProviderAccountId(providerAccountId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Plaid returned a transaction for an account that is not linked."));
+            String date = firstNonBlank(transaction.path("authorized_date").asText(null),
+                    transaction.path("date").asText(null), null);
+            if (date == null) date = requiredText(transaction, "date");
+            String currency = firstNonBlank(transaction.path("iso_currency_code").asText(null),
+                    transaction.path("unofficial_currency_code").asText(null), account.getCurrency());
+            Map<String, Object> item = new HashMap<>();
+            item.put("providerTransactionId", requiredText(transaction, "transaction_id"));
+            item.put("accountId", account.getId());
+            item.put("amount", transaction.path("amount").decimalValue());
+            item.put("currency", currency.toUpperCase());
+            item.put("name", firstNonBlank(transaction.path("name").asText(null), "Bank transaction", "Bank transaction"));
+            item.put("merchant", transaction.path("merchant_name").asText(null));
+            item.put("category", transaction.path("personal_finance_category").path("primary").asText(null));
+            item.put("transactionDate", LocalDate.parse(date).atStartOfDay().atOffset(ZoneOffset.UTC).toString());
+            item.put("pending", transaction.path("pending").asBoolean(false));
+            mapped.add(item);
+        }
+        return mapped;
     }
 
     @Transactional(readOnly = true)
