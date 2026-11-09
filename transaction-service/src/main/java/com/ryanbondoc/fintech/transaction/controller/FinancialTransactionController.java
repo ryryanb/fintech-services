@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.service.FinancialTransactionService;
 
@@ -50,6 +52,13 @@ public class FinancialTransactionController {
             Authentication authentication) {
 
         return transactionService.createTransaction(request, authentication);
+    }
+
+    @Operation(summary = "Import Plaid transactions", description = "Upserts provider transactions and removes transactions deleted by the provider.", security = @SecurityRequirement(name = "bearerAuth"))
+    @PostMapping("/import/plaid")
+    public PlaidTransactionImportResponse importPlaidTransactions(
+            @Valid @RequestBody PlaidTransactionImportRequest request, Authentication authentication) {
+        return transactionService.importPlaidTransactions(request, authentication);
     }
 
     @Operation(summary = "Get transaction by ID", description = """
