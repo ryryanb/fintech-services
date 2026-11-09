@@ -857,3 +857,58 @@ The goal is not to simulate a complete banking system. The goal is to demonstrat
 This project is licensed under the MIT License.
 
 See the `LICENSE` file for details.
+
+
+## Connecting external financial accounts (ACC-008)
+
+The Account Service supports external-account linking through **Plaid Sandbox**. This is a real Plaid Link/API integration using simulated institutions and test financial data; it does not connect Philippine bank accounts or real customer bank credentials.
+
+### Configure Plaid Sandbox
+
+1. Create a developer account at [Plaid Dashboard](https://dashboard.plaid.com/) and copy the Sandbox client ID and secret.
+2. Add these values to the untracked root `.env` file:
+
+```dotenv
+PLAID_ENV=sandbox
+PLAID_BASE_URL=https://sandbox.plaid.com
+PLAID_CLIENT_ID=your-sandbox-client-id
+PLAID_SECRET=your-sandbox-secret
+PLAID_TOKEN_ENCRYPTION_KEY=your-base64-encoded-32-byte-key
+```
+
+Generate the AES-256-GCM encryption key locally:
+
+```bash
+openssl rand -base64 32
+```
+
+Keep both Plaid credentials and the encryption key out of source control. The Account Service encrypts Plaid access tokens before persisting them. Do not rotate the encryption key without first migrating/re-encrypting stored tokens.
+
+Rebuild the Account Service and start the frontend. Open **Financial accounts** while signed in and choose **Connect with Plaid**. Plaid Link opens with Sandbox institutions. Complete the test institution flow, then the frontend sends the one-time public token to the backend for exchange. The backend stores the encrypted access token and imports the linked account metadata and balances.
+
+### Sandbox test credentials
+
+Plaid Sandbox commonly supports the following test login:
+
+| Field | Value |
+| --- | --- |
+| Username | `user_good` |
+| Password | `pass_good` |
+| MFA code, if prompted | `1234` |
+
+Use the institution and account options shown by Plaid Link. Sandbox data is simulated and may be reset or changed by Plaid.
+
+### Account connection API
+
+All endpoints require the Fintech bearer token:
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/accounts/connections/plaid/link-token` | Create a short-lived Plaid Link token for the authenticated customer |
+| POST | `/accounts/connections/plaid` | Exchange the Plaid public token and import linked accounts |
+| GET | `/accounts/connections` | List the authenticated customer's Plaid connections |
+| DELETE | `/accounts/connections/{connectionId}` | Remove the Plaid Item and mark its imported accounts inactive |
+
+Customer identity is always derived from the validated JWT. The client cannot choose the customer ID for a connection. The Plaid access token is never returned to the browser or included in API responses.
+
+**Scope note:** ACC-008 implements the Plaid Link connection lifecycle and initial linked-account import. Fetching/synchronizing transaction records from Plaid into the Transaction Service is a separate transaction-import capability and is not claimed as complete by this story. Plaid Sandbox uses US test institutions; it is not a Philippine-bank integration.

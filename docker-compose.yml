@@ -7,21 +7,16 @@ services:
   auth-db:
     image: postgres:13
     container_name: fintech-auth-db
-
     environment:
       POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
       POSTGRES_USER: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in .env}
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
-
     ports:
       - "5436:5432"
-
     volumes:
       - auth-db-data:/var/lib/postgresql/data
-
     networks:
       - fintech-network
-
 
   # ============================================================
   # Customer Database
@@ -30,21 +25,16 @@ services:
   customer-db:
     image: postgres:13
     container_name: fintech-customer-db
-
     environment:
       POSTGRES_DB: ${CUSTOMER_DB_NAME:-customer_db}
       POSTGRES_USER: ${CUSTOMER_DB_USERNAME:?Set CUSTOMER_DB_USERNAME in .env}
       POSTGRES_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in .env}
-
     ports:
       - "5433:5432"
-
     volumes:
       - customer-db-data:/var/lib/postgresql/data
-
     networks:
       - fintech-network
-
 
   # ============================================================
   # Account Database
@@ -53,24 +43,19 @@ services:
   account-db:
     image: postgres:13
     container_name: fintech-account-db
-
     environment:
       POSTGRES_DB: ${ACCOUNT_DB_NAME:-account_db}
       POSTGRES_USER: ${ACCOUNT_DB_USERNAME:?Set ACCOUNT_DB_USERNAME in .env}
       POSTGRES_PASSWORD: ${ACCOUNT_DB_PASSWORD:?Set ACCOUNT_DB_PASSWORD in .env}
-
     ports:
       - "5434:5432"
-
     volumes:
       - account-db-data:/var/lib/postgresql/data
-
     networks:
       - fintech-network
 
-
   # ============================================================
-  # Transaction Database
+  # Payment and Transaction Databases
   # ============================================================
 
   payment-db:
@@ -90,18 +75,14 @@ services:
   transaction-db:
     image: postgres:13
     container_name: fintech-transaction-db
-
     environment:
       POSTGRES_DB: ${TRANSACTION_DB_NAME:-transaction_db}
       POSTGRES_USER: ${TRANSACTION_DB_USERNAME:?Set TRANSACTION_DB_USERNAME in .env}
       POSTGRES_PASSWORD: ${TRANSACTION_DB_PASSWORD:?Set TRANSACTION_DB_PASSWORD in .env}
-
     ports:
       - "5437:5432"
-
     volumes:
       - transaction-db-data:/var/lib/postgresql/data
-
     networks:
       - fintech-network
 
@@ -111,35 +92,26 @@ services:
 
   auth-service:
     image: fintech-auth-service:latest
-
     build:
       context: .
       dockerfile: auth-service/Dockerfile
-
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
       SPRING_DATASOURCE_USERNAME: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
-
       JWT_PRIVATE_KEY_PATH: /app/keys/jwt-private.pem
-
       CUSTOMER_SERVICE_URL: http://customer-service:8082
-
     volumes:
       - ./auth-service/keys/jwt-private.pem:/app/keys/jwt-private.pem:ro
-
     ports:
       - "8086:8086"
-
     depends_on:
       - auth-db
       - customer-service
-
     networks:
       - fintech-network
-
 
   # ============================================================
   # Customer Service
@@ -147,27 +119,21 @@ services:
 
   customer-service:
     image: fintech-customer-service:latest
-
     build:
       context: .
       dockerfile: customer-service/Dockerfile
-
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://customer-db:5432/customer_db
       SPRING_DATASOURCE_USERNAME: ${CUSTOMER_DB_USERNAME:?Set CUSTOMER_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
-
     ports:
       - "8082:8082"
-
     depends_on:
       - customer-db
-
     networks:
       - fintech-network
-
 
   # ============================================================
   # Account Service
@@ -175,27 +141,27 @@ services:
 
   account-service:
     image: fintech-account-service:latest
-
     build:
       context: .
       dockerfile: account-service/Dockerfile
-
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://account-db:5432/account_db
       SPRING_DATASOURCE_USERNAME: ${ACCOUNT_DB_USERNAME:?Set ACCOUNT_DB_USERNAME in .env}
       SPRING_DATASOURCE_PASSWORD: ${ACCOUNT_DB_PASSWORD:?Set ACCOUNT_DB_PASSWORD in .env}
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
-
+      PLAID_ENV: ${PLAID_ENV:-sandbox}
+      PLAID_BASE_URL: ${PLAID_BASE_URL:-https://sandbox.plaid.com}
+      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID:-}
+      PLAID_SECRET: ${PLAID_SECRET:-}
+      PLAID_TOKEN_ENCRYPTION_KEY: ${PLAID_TOKEN_ENCRYPTION_KEY:-}
     ports:
       - "8083:8083"
-
     depends_on:
       - account-db
-
     networks:
       - fintech-network
-  
+
   # ============================================================
   # Payment Service
   # ============================================================
@@ -228,11 +194,9 @@ services:
 
   transaction-service:
     image: fintech-transaction-service:latest
-
     build:
       context: .
       dockerfile: transaction-service/Dockerfile
-
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-db:5432/transaction_db
       SPRING_DATASOURCE_USERNAME: ${TRANSACTION_DB_USERNAME:?Set TRANSACTION_DB_USERNAME in .env}
@@ -240,20 +204,12 @@ services:
       SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
       SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
       SERVICES_ACCOUNT_BASE_URL: http://account-service:8083
-
     ports:
       - "8087:8087"
-
     depends_on:
       - transaction-db
-
     networks:
       - fintech-network
-
-
-# ==============================================================
-# Persistent Database Volumes
-# ==============================================================
 
 volumes:
   auth-db-data:
@@ -262,12 +218,6 @@ volumes:
   transaction-db-data:
   payment-db-data:
 
-
-# ==============================================================
-# Shared Network
-# ==============================================================
-
 networks:
   fintech-network:
     driver: bridge
-

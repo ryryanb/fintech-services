@@ -55,4 +55,10 @@ public class FinancialAccount {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AccountStatus status;
+
+    @Column(name = "external_connection_id")
+    private UUID externalConnectionId;
+
+    @Column(name = "provider_account_id", length = 100, unique = true)
+    private String providerAccountId;
 }

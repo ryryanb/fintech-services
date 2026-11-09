@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
 import { getAccessToken } from './authSession';
 
+declare global {
+  interface Window {
+    Plaid?: {
+      create: (configuration: {
+        token: string;
+        onSuccess: (publicToken: string, metadata: { institution?: { institution_id?: string; name?: string } }) => void;
+        onExit?: (error: unknown, metadata: unknown) => void;
+      }) => { open: () => void; exit: () => void };
+    };
+  }
+}
+
 type FinancialAccountsProps = {
   onBackToProfile: () => void;
   onAddAccount: () => void;
@@ -62,6 +74,25 @@ function friendlyError(responseStatus: number, context: 'list' | 'detail'): stri
     : 'We could not load your financial accounts. Please try again.';
 }
 
+async function loadPlaidLinkScript(): Promise<void> {
+  if (window.Plaid) return;
+  await new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-plaid-link]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Unable to load Plaid Link.')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+    script.async = true;
+    script.dataset.plaidLink = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Unable to load Plaid Link.'));
+    document.head.appendChild(script);
+  });
+}
+
 export default function FinancialAccounts({ onBackToProfile, onAddAccount, onSignOut }: FinancialAccountsProps) {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +103,9 @@ export default function FinancialAccounts({ onBackToProfile, onAddAccount, onSig
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [detailRetry, setDetailRetry] = useState(0);
+  const [plaidBusy, setPlaidBusy] = useState(false);
+  const [plaidMessage, setPlaidMessage] = useState('');
+  const [plaidError, setPlaidError] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,6 +149,77 @@ export default function FinancialAccounts({ onBackToProfile, onAddAccount, onSig
     void loadAccounts();
     return () => controller.abort();
   }, [listRetry]);
+
+  async function connectPlaid() {
+    const token = getAccessToken();
+    if (!token) {
+      setPlaidError('Your session has ended. Please sign in again.');
+      return;
+    }
+    setPlaidBusy(true);
+    setPlaidError('');
+    setPlaidMessage('');
+    try {
+      const response = await fetch('/api/accounts/connections/plaid/link-token', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null);
+        const message = typeof payload === 'object' && payload !== null && 'message' in payload && typeof payload.message === 'string'
+          ? payload.message : 'Unable to start a Plaid connection. Check the Account Service configuration.';
+        throw new Error(message);
+      }
+      const { linkToken } = await response.json() as { linkToken: string };
+      await loadPlaidLinkScript();
+      if (!window.Plaid) throw new Error('Plaid Link did not initialize.');
+      const handler = window.Plaid.create({
+        token: linkToken,
+        onSuccess: async (publicToken, metadata) => {
+          try {
+            const exchangeResponse = await fetch('/api/accounts/connections/plaid', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+              },
+              body: JSON.stringify({
+                publicToken,
+                institutionId: metadata.institution?.institution_id ?? null,
+                institutionName: metadata.institution?.name ?? null,
+              }),
+            });
+            if (!exchangeResponse.ok) {
+              const payload: unknown = await exchangeResponse.json().catch(() => null);
+              const message = typeof payload === 'object' && payload !== null && 'message' in payload && typeof payload.message === 'string'
+                ? payload.message : 'The bank was selected, but Fintech could not finish importing its accounts.';
+              throw new Error(message);
+            }
+            const result = await exchangeResponse.json() as { accounts?: unknown };
+            if (!Array.isArray(result.accounts) || !result.accounts.every(isFinancialAccount)) {
+              throw new Error('The Account Service returned an unexpected account response.');
+            }
+            setAccounts((current) => {
+              const byId = new Map(current.map((account) => [account.id, account]));
+              for (const account of result.accounts as FinancialAccount[]) byId.set(account.id, account);
+              return Array.from(byId.values());
+            });
+            setPlaidMessage(`Connected ${metadata.institution?.name ?? 'your financial institution'} and imported ${result.accounts.length} account(s).`);
+          } catch (cause) {
+            setPlaidError(cause instanceof Error ? cause.message : 'Unable to complete the Plaid connection.');
+          } finally {
+            setPlaidBusy(false);
+          }
+        },
+        onExit: () => setPlaidBusy(false),
+      });
+      handler.open();
+    } catch (cause) {
+      setPlaidError(cause instanceof Error ? cause.message : 'Unable to start a Plaid connection.');
+      setPlaidBusy(false);
+    }
+  }
 
   async function viewAccount(accountId: string) {
     const token = getAccessToken();
@@ -190,6 +295,17 @@ export default function FinancialAccounts({ onBackToProfile, onAddAccount, onSig
             </button>
           </div>
         )}
+      </div>
+      <div className="form-card" style={{ marginBottom: '1.25rem' }}>
+        <div>
+          <h3>Connect an external bank account</h3>
+          <p className="profile-message">Securely link a test financial institution using Plaid Sandbox. No real bank credentials are used.</p>
+        </div>
+        {plaidError && <p className="record-feedback record-feedback-error" role="alert">{plaidError}</p>}
+        {plaidMessage && <p className="record-feedback" role="status">{plaidMessage}</p>}
+        <button className="submit-button" type="button" onClick={() => void connectPlaid()} disabled={plaidBusy}>
+          {plaidBusy ? 'Connecting…' : 'Connect with Plaid'}
+        </button>
       </div>
 
       {selectedAccountId ? (
