@@ -69,9 +69,23 @@ services:
       - fintech-network
 
 
-    # ============================================================
+  # ============================================================
   # Transaction Database
   # ============================================================
+
+  payment-db:
+    image: postgres:13
+    container_name: fintech-payment-db
+    environment:
+      POSTGRES_DB: ${PAYMENT_DB_NAME:-payment_db}
+      POSTGRES_USER: ${PAYMENT_DB_USERNAME:?Set PAYMENT_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
+    ports:
+      - "5438:5432"
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    networks:
+      - fintech-network
 
   transaction-db:
     image: postgres:13
@@ -182,7 +196,29 @@ services:
     networks:
       - fintech-network
   
-    # ============================================================
+  # ============================================================
+  # Payment Service
+  # ============================================================
+
+  payment-service:
+    image: fintech-payment-service:latest
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/${PAYMENT_DB_NAME:-payment_db}
+      SPRING_DATASOURCE_USERNAME: ${PAYMENT_DB_USERNAME:?Set PAYMENT_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
+    ports:
+      - "8088:8088"
+    depends_on:
+      - payment-db
+    networks:
+      - fintech-network
+
+  # ============================================================
   # Transaction Service
   # ============================================================
 
@@ -220,6 +256,7 @@ volumes:
   customer-db-data:
   account-db-data:
   transaction-db-data:
+  payment-db-data:
 
 
 # ==============================================================
