@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,14 +37,10 @@ class PaymentServiceTest {
     @InjectMocks
     private PaymentService paymentService;
 
-    @BeforeEach
-    void setUp() {
-        when(paymentRepository.save(any(Payment.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-    }
-
     @Test
     void initiateCheckoutPersistsPendingPaymentAndReturnsStripeUrl() {
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(checkoutGateway.createSession(any(Payment.class)))
                 .thenReturn(new CheckoutSessionDetails("cs_test_123", "https://checkout.stripe.com/c/pay/cs_test_123"));
 
@@ -63,6 +58,8 @@ class PaymentServiceTest {
 
     @Test
     void initiateCheckoutMarksPaymentFailedWhenStripeRejectsSessionCreation() {
+        when(paymentRepository.save(any(Payment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(checkoutGateway.createSession(any(Payment.class)))
                 .thenThrow(new StripeCheckoutException("Stripe unavailable", new RuntimeException()));
 
