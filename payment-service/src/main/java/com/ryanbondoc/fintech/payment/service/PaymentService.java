@@ -96,7 +96,6 @@ public class PaymentService {
                 payment.getCheckoutUrl(), payment.getCreatedAt());
     }
 
-    @Transactional
     public CheckoutResponse initiateCheckout(String customerId, CreateCheckoutRequest request, String idempotencyKey) {
         if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -108,37 +107,31 @@ public class PaymentService {
         PaymentProvider provider = request.normalizedProvider();
         String fingerprint = fingerprint(request.amount(), currency, description, provider);
 
+        // Reserve the customer/key pair in its own committed database transaction.
+        // PostgreSQL's unique index serializes concurrent requests using the same key.
+        Payment candidate = new Payment(customerId, request.amount(), currency, description, provider);
+        paymentRepository.insertIfAbsent(candidate.getId(), customerId, request.amount(), currency,
+                description, provider.name(), idempotencyKey, fingerprint);
+
         Payment payment = paymentRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
-                .orElse(null);
+                .orElseThrow(() -> new IllegalStateException("Unable to reserve payment idempotency key."));
 
-        if (payment != null) {
-            if (!fingerprint.equals(payment.getRequestFingerprint())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Idempotency-Key has already been used with different payment details.");
-            }
-            if (payment.getCheckoutUrl() != null && !payment.getCheckoutUrl().isBlank()) {
-                return toResponse(payment);
-            }
-            if (payment.getStatus() != PaymentStatus.PENDING) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "The original checkout request did not complete. Use a new Idempotency-Key to start a new payment.");
-            }
-        } else {
-            payment = new Payment(customerId, request.amount(), currency, description, provider);
-            payment.setIdempotency(idempotencyKey, fingerprint);
-            payment = paymentRepository.saveAndFlush(payment);
+        if (!fingerprint.equals(payment.getRequestFingerprint())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Idempotency-Key has already been used with different payment details.");
+        }
+        if (payment.getCheckoutUrl() != null && !payment.getCheckoutUrl().isBlank()) {
+            return toResponse(payment);
+        }
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The original checkout request did not complete. Use a new Idempotency-Key to start a new payment.");
         }
 
-        final CheckoutSessionDetails session;
-        try {
-            // The stable payment UUID is the provider idempotency key. A retry after a
-            // timeout or process restart therefore cannot create a second provider order.
-            session = gatewayFor(payment.getProvider()).createSession(payment);
-        } catch (RuntimeException exception) {
-            payment.markFailed();
-            paymentRepository.save(payment);
-            throw exception;
-        }
+        // Provider calls happen after the payment row is committed. If a network
+        // timeout occurs after the provider creates a session, retrying uses the same
+        // payment UUID as the provider idempotency key and safely recovers that session.
+        final CheckoutSessionDetails session = gatewayFor(payment.getProvider()).createSession(payment);
 
         payment.attachCheckoutDetails(session.sessionId(), session.checkoutUrl());
         payment = paymentRepository.save(payment);
