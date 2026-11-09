@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +104,24 @@ class PaymentServiceTest {
         verify(paymentRepository, times(2)).save(captor.capture());
         assertEquals("PAYPAL-ORDER-123", captor.getAllValues().get(1).getPaypalOrderId());
         verify(paypalCheckoutGateway).createSession(any(Payment.class));
+    }
+
+
+    @Test
+    void capturePayPalPaymentMarksPaymentSucceededOnlyAfterMatchingCapture() {
+        UUID paymentId = UUID.randomUUID();
+        Payment payment = new Payment("customer-123", new BigDecimal("100.00"), "PHP",
+                "Demo purchase", PaymentProvider.PAYPAL);
+        payment.attachCheckoutDetails("PAYPAL-ORDER-123", "https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL-ORDER-123");
+        when(paymentRepository.findByIdAndCustomerId(paymentId, "customer-123")).thenReturn(Optional.of(payment));
+        when(paypalGateway.captureOrder("PAYPAL-ORDER-123")).thenReturn(
+                new PayPalCheckoutGateway.CapturedPayPalPayment("PAYPAL-ORDER-123", "CAPTURE-123", "100.00", "PHP"));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CheckoutResponse response = paymentService.capturePayPalPayment(paymentId, "customer-123", "PAYPAL-ORDER-123");
+
+        assertEquals(PaymentStatus.SUCCEEDED, response.status());
+        verify(paypalGateway).captureOrder("PAYPAL-ORDER-123");
     }
 
     @Test
