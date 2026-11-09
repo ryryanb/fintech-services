@@ -12,10 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
 import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionStatus;
+import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
+import com.ryanbondoc.fintech.transaction.entity.TransactionType;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import com.ryanbondoc.fintech.transaction.exception.AccountNotFoundException;
 import com.ryanbondoc.fintech.transaction.exception.InvalidSpendingCategoryException;
 import com.ryanbondoc.fintech.transaction.exception.TransactionNotFoundException;
@@ -89,6 +96,61 @@ public class FinancialTransactionServiceImpl
                 return toResponse(saved);
         }
 
+
+
+        @Override
+        public PlaidTransactionImportResponse importPlaidTransactions(
+                        PlaidTransactionImportRequest request, Authentication authentication) {
+                int added = 0;
+                int updated = 0;
+                int removed = 0;
+                for (PlaidTransactionImportRequest.ImportedTransaction imported : request.added()) {
+                        boolean existed = upsertPlaidTransaction(imported, authentication);
+                        if (existed) updated++; else added++;
+                }
+                for (PlaidTransactionImportRequest.ImportedTransaction imported : request.modified()) {
+                        boolean existed = upsertPlaidTransaction(imported, authentication);
+                        if (existed) updated++; else added++;
+                }
+                for (String providerId : request.removed()) {
+                        FinancialTransaction existing = transactionRepository.findByProviderTransactionId(providerId).orElse(null);
+                        if (existing != null) {
+                                transactionAuthorizationService.authorizeAccountAccess(existing.getAccountId(), authentication);
+                                transactionRepository.delete(existing);
+                                removed++;
+                        }
+                }
+                return new PlaidTransactionImportResponse(added, updated, removed);
+        }
+
+        private boolean upsertPlaidTransaction(
+                        PlaidTransactionImportRequest.ImportedTransaction imported, Authentication authentication) {
+                transactionAuthorizationService.authorizeAccountAccess(imported.accountId(), authentication);
+                FinancialTransaction transaction = transactionRepository
+                                .findByProviderTransactionId(imported.providerTransactionId())
+                                .orElseGet(FinancialTransaction::new);
+                boolean existed = transaction.getId() != null;
+                BigDecimal signedAmount = imported.amount();
+                TransactionDirection direction = signedAmount.signum() < 0
+                                ? TransactionDirection.CREDIT : TransactionDirection.DEBIT;
+                TransactionType type = direction == TransactionDirection.CREDIT
+                                ? TransactionType.DEPOSIT : TransactionType.PAYMENT;
+                String category = TransactionCategorizer.categorize(
+                                imported.merchant(), imported.name(), type, direction).name();
+                transaction.setProviderTransactionId(imported.providerTransactionId());
+                transaction.setAccountId(imported.accountId());
+                transaction.setType(type);
+                transaction.setDirection(direction);
+                transaction.setAmount(signedAmount.abs());
+                transaction.setCurrency(imported.currency().toUpperCase(java.util.Locale.ROOT));
+                transaction.setDescription(imported.name());
+                transaction.setMerchant(imported.merchant());
+                transaction.setCategory(category);
+                transaction.setStatus(imported.pending() ? TransactionStatus.PENDING : TransactionStatus.COMPLETED);
+                transaction.setTransactionDate(imported.transactionDate());
+                transactionRepository.save(transaction);
+                return existed;
+        }
 
         private String resolveCategory(TransactionRequest request, Authentication authentication) {
                 if (request.category() == null || request.category().isBlank()) {
