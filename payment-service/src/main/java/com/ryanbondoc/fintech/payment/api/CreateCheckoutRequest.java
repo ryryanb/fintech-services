@@ -23,6 +23,10 @@ public record CreateCheckoutRequest(
         String description,
         @Pattern(regexp = "(?i)STRIPE|PAYPAL", message = "Provider must be STRIPE or PAYPAL")
         String provider) {
+    public CreateCheckoutRequest(BigDecimal amount, String currency, String description) {
+        this(amount, currency, description, "STRIPE");
+    }
+
     public PaymentProvider normalizedProvider() {
         return provider == null || provider.isBlank() ? PaymentProvider.STRIPE : PaymentProvider.valueOf(provider.toUpperCase());
     }
