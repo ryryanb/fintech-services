@@ -75,11 +75,13 @@ function LockIcon() {
 }
 
 function App() {
-  const [showLogin, setShowLogin] = useState(() => ['/login', '/profile', '/accounts', '/payments/new'].includes(window.location.pathname));
+  const [showLogin, setShowLogin] = useState(() => ['/login', '/profile', '/accounts', '/payments/new', '/payment/success', '/payment/paypal/return',
+    '/payment/paypal/cancel',].includes(window.location.pathname));
 
   useEffect(() => {
     function syncRoute() {
-      setShowLogin(['/login', '/profile', '/accounts', '/payments/new'].includes(window.location.pathname));
+      setShowLogin(['/login', '/profile', '/accounts', '/payments/new', '/payment/success', '/payment/paypal/return',
+        '/payment/paypal/cancel',].includes(window.location.pathname));
     }
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
@@ -154,9 +156,9 @@ function App() {
         const payload: unknown = await response.json().catch(() => null);
         const serverMessage =
           typeof payload === 'object' &&
-          payload !== null &&
-          'message' in payload &&
-          typeof payload.message === 'string'
+            payload !== null &&
+            'message' in payload &&
+            typeof payload.message === 'string'
             ? payload.message
             : undefined;
 
@@ -206,13 +208,13 @@ function App() {
             <div className="benefit-list">
               <div className="benefit">
                 <span className="benefit-icon">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 19 6v5c0 4.4-2.9 7.8-7 10-4.1-2.2-7-5.6-7-10V6l7-3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 19 6v5c0 4.4-2.9 7.8-7 10-4.1-2.2-7-5.6-7-10V6l7-3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </span>
                 <div><strong>Security comes first</strong><span>Your information deserves careful protection.</span></div>
               </div>
               <div className="benefit">
                 <span className="benefit-icon">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 7h4v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /><path d="M15 7h4v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </span>
                 <div><strong>Built for clarity</strong><span>Spend less time sorting and more time planning.</span></div>
               </div>
@@ -254,7 +256,7 @@ function App() {
               <div className="field">
                 <label htmlFor="email">Email address</label>
                 <div className="input-wrap">
-                  <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   <input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={254} required value={values.email} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('email'))} aria-describedby={fieldError('email') ? 'email-error' : undefined} />
                 </div>
                 {fieldError('email') && <p className="field-error" id="email-error">{fieldError('email')}</p>}
@@ -266,13 +268,13 @@ function App() {
                   <span className="field-hint">8–100 characters</span>
                 </div>
                 <div className="input-wrap">
-                  <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3.5" y="8.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 8.5V6a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3.5" y="8.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M6 8.5V6a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                   <input id="password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete="new-password" placeholder="Create a password" minLength={8} maxLength={100} required value={values.password} onChange={handleChange} onBlur={handleBlur} aria-invalid={Boolean(fieldError('password'))} aria-describedby={fieldError('password') ? 'password-error' : undefined} />
                   <button className="password-toggle" type="button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
                     {passwordVisible ? (
-                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5"/><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5"/><path d="m3 3 14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5" /><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5" /><path d="m3 3 14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                     ) : (
-                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5"/><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5"/></svg>
+                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z" stroke="currentColor" strokeWidth="1.5" /><circle cx="10" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.5" /></svg>
                     )}
                   </button>
                 </div>
