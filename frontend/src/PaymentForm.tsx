@@ -12,6 +12,7 @@ type CheckoutResponse = {
   amount: number | string;
   currency: string;
   description: string;
+  provider: 'STRIPE' | 'PAYPAL';
   status: string;
   checkoutUrl: string;
 };
@@ -25,6 +26,7 @@ function isCheckoutResponse(value: unknown): value is CheckoutResponse {
     (typeof result.amount === 'number' || typeof result.amount === 'string') &&
     typeof result.currency === 'string' &&
     typeof result.description === 'string' &&
+    (result.provider === 'STRIPE' || result.provider === 'PAYPAL') &&
     typeof result.status === 'string' &&
     typeof result.checkoutUrl === 'string';
 }
@@ -52,11 +54,6 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
-
-    if (provider !== 'STRIPE') {
-      setError('PayPal checkout is not available yet. Select Stripe to continue.');
-      return;
-    }
 
     const numericAmount = Number(amount);
     if (!Number.isFinite(numericAmount) || numericAmount < 0.5) {
@@ -88,7 +85,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ amount: numericAmount, currency, description: cleanDescription }),
+        body: JSON.stringify({ amount: numericAmount, currency, description: cleanDescription, provider }),
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error(errorMessage(payload, response.status));
@@ -102,7 +99,10 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
       } catch {
         throw new Error('The Payment Service returned an invalid Checkout URL.');
       }
-      if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'checkout.stripe.com') {
+      const trustedHosts = payload.provider === 'STRIPE'
+        ? ['checkout.stripe.com']
+        : ['www.sandbox.paypal.com', 'sandbox.paypal.com'];
+      if (checkoutUrl.protocol !== 'https:' || !trustedHosts.includes(checkoutUrl.hostname)) {
         throw new Error('The Payment Service returned an untrusted Checkout URL.');
       }
 
@@ -135,7 +135,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
           <div>
             <span className="eyebrow"><span className="eyebrow-dot" /> SECURE PAYMENT</span>
             <h1 id="payment-title">Make a payment<span>.</span></h1>
-            <p className="intro-copy">Enter the payment details to create a secure Stripe Checkout session.</p>
+            <p className="intro-copy">Enter the payment details and choose Stripe or PayPal for secure hosted checkout.</p>
           </div>
           <button className="secondary-button" type="button" onClick={onBackToTransactions} disabled={submitting}>Back to transactions</button>
         </div>
@@ -167,17 +167,17 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                 </span>
                 <span className="provider-option-check" aria-hidden="true">✓</span>
               </label>
-              <label className="provider-option provider-option-unavailable" aria-disabled="true">
-                <input type="radio" name="payment-provider" value="PAYPAL" disabled />
+              <label className={`provider-option ${provider === 'PAYPAL' ? 'provider-option-selected' : ''}`}>
+                <input type="radio" name="payment-provider" value="PAYPAL" checked={provider === 'PAYPAL'} onChange={() => setProvider('PAYPAL')} disabled={submitting} />
                 <span className="provider-option-mark provider-option-mark-paypal" aria-hidden="true">P</span>
                 <span className="provider-option-copy">
                   <strong>PayPal</strong>
-                  <small>Not configured yet</small>
+                  <small>PayPal sandbox checkout · Available</small>
                 </span>
-                <span className="provider-coming-soon">Coming soon</span>
+                {provider === 'PAYPAL' && <span className="provider-option-check" aria-hidden="true">✓</span>}
               </label>
             </div>
-            <small id="provider-help" className="provider-help">Stripe is currently the only configured provider. Additional providers will become selectable when their checkout integrations are enabled.</small>
+            <small id="provider-help" className="provider-help">PayPal uses sandbox credentials for testing. Select a provider to continue to its hosted approval or checkout page.</small>
           </fieldset>
 
           <div className="record-form-grid">
@@ -196,7 +196,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
                 disabled={submitting}
                 autoComplete="off"
               />
-              <small>Minimum 0.50; Stripe may enforce a higher minimum depending on your account's settlement currency.</small>
+              <small>Minimum 0.50. Your selected provider may enforce additional currency or account limits.</small>
             </label>
 
             <label className="record-field">
@@ -227,7 +227,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
               {submitting ? 'Preparing secure checkout…' : 'Continue to secure checkout'} <span aria-hidden="true">→</span>
             </button>
           </div>
-          <p className="payment-form-disclaimer">Card details are not collected or stored by this application. You will enter payment credentials on Stripe's hosted Checkout page. This demo initiates a payment only; payment confirmation requires a future webhook integration.</p>
+          <p className="payment-form-disclaimer">Payment details are entered on the provider's hosted page. PayPal approval creates an order but does not capture funds yet; capture and verified payment confirmation require a follow-up integration.</p>
         </form>
         <footer className="form-footer">© 2026 Fintech Services <span aria-hidden="true">·</span> Your financial life, in clearer view</footer>
       </section>
