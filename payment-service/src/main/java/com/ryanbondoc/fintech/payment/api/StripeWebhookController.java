@@ -49,8 +49,14 @@ public class StripeWebhookController {
             log.warn("Rejected Stripe webhook: invalid signature or payload");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        if ("checkout.session.completed".equals(event.getType())
-                || "checkout.session.async_payment_succeeded".equals(event.getType())) {
+        String eventType = event.getType();
+        PaymentStatus targetStatus = switch (eventType) {
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" -> PaymentStatus.SUCCEEDED;
+            case "checkout.session.async_payment_failed" -> PaymentStatus.FAILED;
+            case "checkout.session.expired" -> PaymentStatus.CANCELLED;
+            default -> null;
+        };
+        if (targetStatus != null) {
             EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
             StripeObject object = deserializer.getObject().orElse(null);
             if (object == null) {
@@ -61,7 +67,14 @@ public class StripeWebhookController {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                 }
             }
-            if (!(object instanceof Session session) || !"paid".equalsIgnoreCase(session.getPaymentStatus())) {
+            if (!(object instanceof Session session)) {
+                return ResponseEntity.ok().build();
+            }
+            // A completed Checkout Session can still be unpaid for asynchronous
+            // payment methods. Only successful/async-success events with paid funds
+            // may transition the local payment to SUCCEEDED.
+            if (targetStatus == PaymentStatus.SUCCEEDED
+                    && !"paid".equalsIgnoreCase(session.getPaymentStatus())) {
                 return ResponseEntity.ok().build();
             }
             Map<String, String> metadata = session.getMetadata();
@@ -69,7 +82,8 @@ public class StripeWebhookController {
                 if (metadata == null || metadata.get("paymentId") == null || session.getId() == null) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
                 }
-                paymentService.markStripePaymentSucceeded(UUID.fromString(metadata.get("paymentId")), session.getId());
+                paymentService.updateStripePaymentStatus(
+                        UUID.fromString(metadata.get("paymentId")), session.getId(), targetStatus);
             } catch (RuntimeException exception) {
                 log.error("Unable to reconcile verified Stripe payment event {}", event.getId(), exception);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
