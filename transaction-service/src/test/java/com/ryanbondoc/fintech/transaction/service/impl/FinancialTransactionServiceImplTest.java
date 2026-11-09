@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.entity.FinancialTransaction;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
@@ -452,6 +453,62 @@ class FinancialTransactionServiceImplTest {
                                 .hasMessage("Transaction not found: " + transactionId);
 
                 verify(transactionRepository).findById(transactionId);
+        }
+
+
+        @Test
+        void shouldImportPlaidDebitWithProviderIdAndAvoidDuplicateOnRetry() {
+                UUID accountId = UUID.randomUUID();
+                String providerId = "plaid-txn-123";
+                OffsetDateTime transactionDate = OffsetDateTime.parse("2026-11-09T00:00:00Z");
+                PlaidTransactionImportRequest.ImportedTransaction imported =
+                                new PlaidTransactionImportRequest.ImportedTransaction(
+                                                providerId, accountId, new BigDecimal("45.67"), "USD",
+                                                "Coffee shop", "Coffee shop", null, transactionDate, false);
+                when(transactionRepository.findByProviderTransactionId(providerId))
+                                .thenReturn(Optional.empty());
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> {
+                                        FinancialTransaction transaction = invocation.getArgument(0);
+                                        transaction.setId(UUID.randomUUID());
+                                        return transaction;
+                                });
+
+                var result = transactionService.importPlaidTransactions(
+                                new PlaidTransactionImportRequest(List.of(imported), List.of(), List.of()),
+                                authentication);
+
+                ArgumentCaptor<FinancialTransaction> captor = ArgumentCaptor.forClass(FinancialTransaction.class);
+                verify(transactionRepository).save(captor.capture());
+                FinancialTransaction saved = captor.getValue();
+                assertThat(result.added()).isEqualTo(1);
+                assertThat(result.updated()).isZero();
+                assertThat(saved.getProviderTransactionId()).isEqualTo(providerId);
+                assertThat(saved.getDirection()).isEqualTo(TransactionDirection.DEBIT);
+                assertThat(saved.getAmount()).isEqualByComparingTo("45.67");
+                assertThat(saved.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+                verify(transactionAuthorizationService).authorizeAccountAccess(accountId, authentication);
+        }
+
+        @Test
+        void shouldImportPlaidCreditAsCreditDirection() {
+                UUID accountId = UUID.randomUUID();
+                String providerId = "plaid-credit-456";
+                PlaidTransactionImportRequest.ImportedTransaction imported =
+                                new PlaidTransactionImportRequest.ImportedTransaction(
+                                                providerId, accountId, new BigDecimal("-125.00"), "USD",
+                                                "Payroll deposit", null, null, OffsetDateTime.now(), false);
+                when(transactionRepository.findByProviderTransactionId(providerId))
+                                .thenReturn(Optional.empty());
+
+                transactionService.importPlaidTransactions(
+                                new PlaidTransactionImportRequest(List.of(imported), List.of(), List.of()),
+                                authentication);
+
+                ArgumentCaptor<FinancialTransaction> captor = ArgumentCaptor.forClass(FinancialTransaction.class);
+                verify(transactionRepository).save(captor.capture());
+                assertThat(captor.getValue().getDirection()).isEqualTo(TransactionDirection.CREDIT);
+                assertThat(captor.getValue().getAmount()).isEqualByComparingTo("125.00");
         }
 
         private JwtAuthenticationToken createAuthentication() {
