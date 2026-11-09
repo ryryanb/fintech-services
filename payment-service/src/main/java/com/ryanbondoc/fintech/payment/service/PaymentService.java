@@ -71,16 +71,34 @@ public class PaymentService {
     }
 
     @Transactional
-    public void markStripePaymentSucceeded(UUID paymentId, String stripeSessionId) {
+    public void updateStripePaymentStatus(UUID paymentId, String stripeSessionId, PaymentStatus newStatus) {
+        if (newStatus != PaymentStatus.SUCCEEDED && newStatus != PaymentStatus.FAILED
+                && newStatus != PaymentStatus.CANCELLED) {
+            throw new IllegalArgumentException("Stripe webhook status must be a terminal payment status.");
+        }
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found."));
-        if (payment.getProvider() != PaymentProvider.STRIPE || !stripeSessionId.equals(payment.getStripeSessionId())) {
+        if (payment.getProvider() != PaymentProvider.STRIPE || payment.getStripeSessionId() == null
+                || !payment.getStripeSessionId().equals(stripeSessionId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stripe session does not match this payment.");
         }
-        if (payment.getStatus() == PaymentStatus.PENDING) {
-            payment.markSucceeded();
-            paymentRepository.save(payment);
+
+        // Provider events may be delivered more than once or out of order.
+        // Only a pending payment may transition; terminal states are never overwritten.
+        if (payment.getStatus() != PaymentStatus.PENDING) return;
+
+        switch (newStatus) {
+            case SUCCEEDED -> payment.markSucceeded();
+            case FAILED -> payment.markFailed();
+            case CANCELLED -> payment.markCancelled();
+            default -> throw new IllegalArgumentException("Unsupported terminal payment status.");
         }
+        paymentRepository.save(payment);
+    }
+
+    @Transactional
+    public void markStripePaymentSucceeded(UUID paymentId, String stripeSessionId) {
+        updateStripePaymentStatus(paymentId, stripeSessionId, PaymentStatus.SUCCEEDED);
     }
 
     @Transactional(readOnly = true)
