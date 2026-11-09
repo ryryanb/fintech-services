@@ -9,8 +9,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
 import com.ryanbondoc.fintech.payment.service.PaymentService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -22,6 +27,16 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
+    @Operation(
+            summary = "Create a Stripe Checkout session",
+            description = "Creates a pending payment for the authenticated customer and returns its Stripe-hosted Checkout URL.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Checkout session created"),
+            @ApiResponse(responseCode = "400", description = "Invalid checkout request"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "502", description = "Stripe Checkout session could not be created")
+    })
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> createCheckout(
             @Valid @RequestBody CreateCheckoutRequest request,
