@@ -103,10 +103,12 @@ The Compose file publishes these ports on your machine:
 | Customer Service | `http://localhost:8082` |
 | Account Service | `http://localhost:8083` |
 | Transaction Service | `http://localhost:8087` |
+| Payment Service | `http://localhost:8088` |
 | Auth PostgreSQL | `localhost:5436` |
 | Customer PostgreSQL | `localhost:5433` |
 | Account PostgreSQL | `localhost:5434` |
 | Transaction PostgreSQL | `localhost:5437` |
+| Payment PostgreSQL | `localhost:5438` |
 
 The database credentials in the Compose file are **development-only defaults**. Do not reuse them in a production environment.
 
@@ -119,6 +121,8 @@ cp .env.example .env
 ```
 
 Replace every sample password with a unique local development password. Compose intentionally fails fast if a required database username or password is missing. Do not use these local values in shared, staging, or production environments. For deployment, inject credentials from the deployment platform's secret manager rather than committing an environment file.
+
+Set `STRIPE_SECRET_KEY` to a Stripe **test-mode** secret key (starts with `sk_test_`) to enable Checkout Session creation. Keep it in the untracked `.env` file; never commit a live or test secret. The Payment Service is available at `http://localhost:8088` and uses its own PostgreSQL database on port `5438`.
 
 The Auth Service signing key is also local-only: keep `auth-service/keys/jwt-private.pem` out of Git (it is ignored by `.gitignore`). Generate/provision a key locally and never paste a real private key into source control. Public verification keys may be committed when needed; private signing keys must not be.
 
@@ -151,6 +155,7 @@ docker compose logs -f auth-service
 docker compose logs -f customer-service
 docker compose logs -f account-service
 docker compose logs -f transaction-service
+docker compose logs -f payment-service
 ```
 
 Press `Ctrl+C` to stop following logs; this does **not** stop the containers.
@@ -171,7 +176,7 @@ After changing code in a service, rebuild and recreate just that service:
 docker compose up -d --build --no-deps customer-service
 ```
 
-Replace `customer-service` with `auth-service`, `account-service`, or `transaction-service` as needed. Use `--no-deps` when you deliberately want to leave dependencies untouched; make sure the required database and other services are already running.
+Replace `customer-service` with `auth-service`, `account-service`, `transaction-service`, or `payment-service` as needed. Use `--no-deps` when you deliberately want to leave dependencies untouched; make sure the required database and other services are already running.
 
 To inspect the result:
 
@@ -344,14 +349,14 @@ Future development will extend the platform with transaction processing, payment
 
 # 🏗 Current Architecture
 
-The current repository contains four Spring Boot service modules:
+The current repository contains five Spring Boot service modules:
 
 ```text
                          FinTech Services
                                 │
        ┌────────────┬──────────────┬──────────────┐
-       ▼            ▼              ▼              ▼
-  Auth Service Customer Service Account Service Transaction Service
+       ▼            ▼              ▼              ▼                 ▼
+  Auth Service Customer Service Account Service Transaction Service Payment Service
        │            │              │              │
        ▼            ▼              ▼              ▼
    Auth Data   Customer Data   Account Data   Transaction Data
@@ -553,7 +558,33 @@ The transaction domain will remain separate from payment-provider integration.
 
 ## Payment Service
 
-A dedicated payment service is planned to isolate payment processing from transaction management.
+`payment-service` is now implemented as a dedicated Spring Boot module to isolate payment-provider integration from transaction management.
+
+Initial Stripe Checkout functionality includes:
+* Authenticated checkout initiation at `POST /api/payments/checkout`
+* Customer identity taken from the JWT `customerId` claim
+* Payment record persisted before contacting Stripe
+* Stripe-hosted Checkout Session creation and hosted checkout URL response
+* Stripe session ID and Checkout URL stored with the payment
+* Stripe test-mode secret supplied through `STRIPE_SECRET_KEY`
+
+Example request (requires a valid bearer token):
+
+```http
+POST http://localhost:8088/api/payments/checkout
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "amount": 25.00,
+  "currency": "USD",
+  "description": "Demo purchase"
+}
+```
+
+The API responds with HTTP 201 and a payment ID, pending status, and Stripe Checkout URL. Redirect the browser to that URL. The return URLs are `/payment/success` and `/payment/cancel` on the configured frontend base URL.
+
+This initial slice only initiates Checkout. A Stripe webhook, signature verification, reconciliation, and authoritative transition to succeeded/cancelled are follow-up work; a browser redirect is not proof of payment.
 
 Planned responsibilities include:
 
@@ -644,8 +675,8 @@ These capabilities remain **planned** and are not currently part of the implemen
 * [ ] Transaction lifecycle
 * [ ] Transaction history
 * [ ] Transaction categorization
-* [ ] Payment Service
-* [ ] Payment-provider integration
+* [x] Payment Service foundation
+* [x] Stripe Checkout initiation
 * [ ] Payment idempotency
 * [ ] Failure handling
 
