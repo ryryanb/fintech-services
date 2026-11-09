@@ -96,8 +96,12 @@ public class Payment {
         attachCheckoutDetails(sessionId, url);
     }
 
+    public void markSucceeded() {
+        if (this.status == PaymentStatus.PENDING) this.status = PaymentStatus.SUCCEEDED;
+    }
+
     public void markFailed() {
-        this.status = PaymentStatus.FAILED;
+        if (this.status == PaymentStatus.PENDING) this.status = PaymentStatus.FAILED;
     }
 
     public UUID getId() { return id; }
