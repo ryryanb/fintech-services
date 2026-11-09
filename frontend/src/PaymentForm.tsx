@@ -50,7 +50,8 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
   const [description, setDescription] = useState('Demo purchase');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(() =>
+    sessionStorage.getItem('paymentCheckoutIdempotencyKey'));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +80,7 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
 
     const requestKey = idempotencyKey ?? crypto.randomUUID();
     setIdempotencyKey(requestKey);
+    sessionStorage.setItem('paymentCheckoutIdempotencyKey', requestKey);
     setSubmitting(true);
     try {
       const response = await fetch('/api/payments/checkout', {
@@ -110,6 +112,8 @@ export default function PaymentForm({ onBackToTransactions, onViewAccounts, onSi
         throw new Error('The Payment Service returned an untrusted Checkout URL.');
       }
 
+      sessionStorage.removeItem('paymentCheckoutIdempotencyKey');
+      setIdempotencyKey(null); sessionStorage.removeItem('paymentCheckoutIdempotencyKey');
       window.location.assign(checkoutUrl.toString());
     } catch (cause) {
       setError(cause instanceof TypeError
