@@ -23,6 +23,10 @@ server:
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}
 
+paypal:
+  base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
 app:
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
 
