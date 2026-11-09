@@ -126,6 +126,12 @@ Set `STRIPE_SECRET_KEY` to a Stripe **test-mode** secret key (starts with `sk_te
 
 ### Completing secure payments (PAY-003)
 
+### Independent payment status tracking (PAY-005)
+
+Payment lifecycle is tracked by the Payment Service using its own `PaymentStatus` (`PENDING`, `SUCCEEDED`, `FAILED`, `CANCELLED`), independently of transaction status. The authenticated `GET /api/payments/{paymentId}` endpoint returns this payment status together with the provider, amount, currency, and checkout details. A payment remains `PENDING` until the provider confirms its outcome; checkout creation alone is not treated as a successful payment.
+
+Stripe status changes are accepted only from signature-verified webhooks and only when the event's payment ID metadata and Checkout Session ID match the stored payment. Paid completion and asynchronous success mark the payment `SUCCEEDED`; asynchronous payment failure marks it `FAILED`; an expired Checkout Session marks it `CANCELLED`. Duplicate and out-of-order events cannot overwrite an already-terminal status. PayPal payments become `SUCCEEDED` only after the server captures the approved order and validates its order ID, amount, currency, and capture ID. Transaction status is not modified by these payment lifecycle updates.
+
 ### Idempotent checkout requests (PAY-006)
 
 Every `POST /api/payments/checkout` request must include an `Idempotency-Key` header (1–128 characters). The frontend generates a UUID and retains it across transient retries/reloads for the same checkout attempt. Keys are scoped to the authenticated customer. Repeating a request with the same key and identical amount, currency, description, and provider returns the original payment and checkout URL; reusing the key with different details returns HTTP 409 Conflict. Use a new key when intentionally starting a different payment.
