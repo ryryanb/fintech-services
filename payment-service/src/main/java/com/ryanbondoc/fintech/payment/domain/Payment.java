@@ -115,6 +115,10 @@ public class Payment {
         if (this.status == PaymentStatus.PENDING) this.status = PaymentStatus.FAILED;
     }
 
+    public void markCancelled() {
+        if (this.status == PaymentStatus.PENDING) this.status = PaymentStatus.CANCELLED;
+    }
+
     public UUID getId() { return id; }
     public String getCustomerId() { return customerId; }
     public BigDecimal getAmount() { return amount; }
