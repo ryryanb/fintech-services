@@ -24,15 +24,23 @@ public class PlaidTokenCipher {
             this.key = null;
             return;
         }
+
+        final byte[] decoded;
+
         try {
-            byte[] decoded = Base64.getDecoder().decode(encodedKey);
-            if (decoded.length != 32) {
-                throw new IllegalArgumentException("PLAID_TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes.");
-            }
-            this.key = new SecretKeySpec(decoded, "AES");
+            decoded = Base64.getDecoder().decode(encodedKey);
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("PLAID_TOKEN_ENCRYPTION_KEY must be a valid Base64-encoded 32-byte key.", exception);
+            throw new IllegalArgumentException(
+                    "PLAID_TOKEN_ENCRYPTION_KEY must be valid Base64 encoding.",
+                    exception);
         }
+
+        if (decoded.length != 32) {
+            throw new IllegalArgumentException(
+                    "PLAID_TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes.");
+        }
+
+        this.key = new SecretKeySpec(decoded, "AES");
     }
 
     public boolean isConfigured() {
@@ -41,7 +49,8 @@ public class PlaidTokenCipher {
 
     public String encrypt(String plaintext) {
         if (key == null) {
-            throw new IllegalStateException("Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");
+            throw new IllegalStateException(
+                    "Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");
         }
         try {
             byte[] iv = new byte[IV_LENGTH];
@@ -58,11 +67,13 @@ public class PlaidTokenCipher {
 
     public String decrypt(String ciphertext) {
         if (key == null) {
-            throw new IllegalStateException("Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");
+            throw new IllegalStateException(
+                    "Plaid token encryption is not configured. Set PLAID_TOKEN_ENCRYPTION_KEY.");
         }
         try {
             byte[] payload = Base64.getDecoder().decode(ciphertext);
-            if (payload.length <= IV_LENGTH) throw new IllegalArgumentException("Invalid encrypted token.");
+            if (payload.length <= IV_LENGTH)
+                throw new IllegalArgumentException("Invalid encrypted token.");
             ByteBuffer buffer = ByteBuffer.wrap(payload);
             byte[] iv = new byte[IV_LENGTH];
             buffer.get(iv);
