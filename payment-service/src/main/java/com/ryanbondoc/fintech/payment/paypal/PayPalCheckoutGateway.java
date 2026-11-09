@@ -28,7 +28,6 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
     private final String frontendBaseUrl;
 
     public PayPalCheckoutGateway(
-            RestClient.Builder restClientBuilder,
             @Value("${paypal.base-url:https://api-m.sandbox.paypal.com}") String baseUrl,
             @Value("${paypal.client-id:}") String clientId,
             @Value("${paypal.client-secret:}") String clientSecret,
@@ -37,7 +36,7 @@ public class PayPalCheckoutGateway implements CheckoutGateway {
         if (!"api-m.sandbox.paypal.com".equalsIgnoreCase(apiHost)) {
             throw new IllegalArgumentException("PayPal integration is restricted to the PayPal sandbox API host.");
         }
-        this.paypalClient = restClientBuilder.clone().baseUrl(baseUrl).build();
+        this.paypalClient = RestClient.builder().baseUrl(baseUrl).build();
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
