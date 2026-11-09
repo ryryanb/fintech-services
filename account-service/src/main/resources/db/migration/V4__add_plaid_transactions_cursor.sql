@@ -1,0 +1,1 @@
+ALTER TABLE plaid_connections ADD COLUMN transactions_cursor TEXT;
