@@ -68,7 +68,7 @@ class PaymentServiceTest {
     void initiateCheckoutMarksPaymentFailedWhenStripeRejectsSessionCreation() {
         when(paymentRepository.save(any(Payment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(checkoutGateway.createSession(any(Payment.class)))
+        when(stripeCheckoutGateway.createSession(any(Payment.class)))
                 .thenThrow(new StripeCheckoutException("Stripe unavailable", new RuntimeException()));
 
         assertThrows(StripeCheckoutException.class, () -> paymentService.initiateCheckout(
@@ -102,7 +102,7 @@ class PaymentServiceTest {
 
     @Test
     void doesNotMarkPaymentFailedWhenSavingSuccessfulStripeSessionFails() {
-        when(checkoutGateway.createSession(any(Payment.class)))
+        when(stripeCheckoutGateway.createSession(any(Payment.class)))
                 .thenReturn(new CheckoutSessionDetails("cs_test_456", "https://checkout.stripe.com/c/pay/cs_test_456"));
         when(paymentRepository.save(any(Payment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0))
