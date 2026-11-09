@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
+import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
 
 public interface FinancialTransactionService {
 
@@ -15,4 +17,6 @@ public interface FinancialTransactionService {
     TransactionResponse createTransaction(TransactionRequest request, Authentication authentication);
 
     TransactionResponse getTransaction(UUID transactionId, Authentication authentication);
+
+    PlaidTransactionImportResponse importPlaidTransactions(PlaidTransactionImportRequest request, Authentication authentication);
 }
