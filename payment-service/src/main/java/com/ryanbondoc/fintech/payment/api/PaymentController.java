@@ -5,6 +5,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +41,27 @@ public class PaymentController {
             @ApiResponse(responseCode = "401", description = "Authentication required"),
             @ApiResponse(responseCode = "502", description = "The payment provider could not create checkout")
     })
+
+    @PostMapping("/{paymentId}/complete/paypal")
+    @Operation(summary = "Capture an approved PayPal payment", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<CheckoutResponse> capturePayPalPayment(
+            @PathVariable UUID paymentId,
+            @RequestParam String token,
+            JwtAuthenticationToken authentication) {
+        String customerId = authentication.getToken().getClaimAsString("customerId");
+        if (customerId == null || customerId.isBlank()) throw new IllegalStateException("Authenticated token does not contain a customerId claim.");
+        return ResponseEntity.ok(paymentService.capturePayPalPayment(paymentId, customerId, token));
+    }
+
+    @GetMapping("/{paymentId}")
+    @Operation(summary = "Get payment status", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<CheckoutResponse> getPayment(
+            @PathVariable UUID paymentId, JwtAuthenticationToken authentication) {
+        String customerId = authentication.getToken().getClaimAsString("customerId");
+        if (customerId == null || customerId.isBlank()) throw new IllegalStateException("Authenticated token does not contain a customerId claim.");
+        return ResponseEntity.ok(paymentService.getPayment(paymentId, customerId));
+    }
+
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> createCheckout(
             @Valid @RequestBody CreateCheckoutRequest request,
