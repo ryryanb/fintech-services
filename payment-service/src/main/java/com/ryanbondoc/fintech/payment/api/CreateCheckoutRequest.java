@@ -1,0 +1,23 @@
+package com.ryanbondoc.fintech.payment.api;
+
+import java.math.BigDecimal;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+public record CreateCheckoutRequest(
+        @DecimalMin(value = "0.50", message = "Amount must be at least 0.50")
+        @Digits(integer = 10, fraction = 2, message = "Amount must have no more than two decimal places")
+        BigDecimal amount,
+        @Pattern(regexp = "[A-Za-z]{3}", message = "Currency must be a three-letter ISO code")
+        String currency,
+        @NotBlank
+        @Size(max = 120)
+        String description) {
+    public String normalizedCurrency() {
+        return currency == null || currency.isBlank() ? "USD" : currency.toUpperCase();
+    }
+}
