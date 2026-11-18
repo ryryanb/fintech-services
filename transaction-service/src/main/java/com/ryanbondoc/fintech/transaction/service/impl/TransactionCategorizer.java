@@ -1,7 +1,6 @@
 package com.ryanbondoc.fintech.transaction.service.impl;
 
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 import com.ryanbondoc.fintech.transaction.entity.TransactionCategory;
 import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
@@ -108,8 +107,7 @@ public final class TransactionCategorizer {
     private static boolean matches(String text, String... phrases) {
         for (String phrase : phrases) {
             String normalizedPhrase = normalize(phrase);
-            if (Pattern.compile("(^| )" + Pattern.quote(normalizedPhrase) + "( |$)")
-                    .matcher(text).find()) {
+            if ((" " + text + " ").contains(" " + normalizedPhrase + " ")) {
                 return true;
             }
         }
