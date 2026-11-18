@@ -926,3 +926,22 @@ openssl rand -base64 32
 Keep the key and provider credentials in an untracked local `.env` file for development and a deployment secret manager for hosted environments. Never commit them, print them, or include them in exception messages. Use TLS for all service and provider traffic. Restrict database access and backups because ciphertext remains sensitive data.
 
 **Key lifecycle:** losing the encryption key makes existing Plaid access tokens unrecoverable. Do not replace the key directly on a running environment. A production key rotation must decrypt each existing token with the old key and re-encrypt it with the new key in a controlled migration, with rollback and backup procedures. This story does not introduce a key-rotation endpoint or claim automatic rotation.
+
+
+### SPEND-006 — Automatically categorize transactions
+
+The Transaction Service assigns a built-in spending category when a transaction is recorded without an explicit category. Categorization is deterministic and runs locally from the merchant and description; it does not send transaction details to an external AI service.
+
+For imported Plaid transactions, the service first maps Plaid's `personal_finance_category.primary` value to the application's built-in categories, then falls back to merchant/description rules when Plaid has no supported category. Unknown or ambiguous transactions are assigned **Other** rather than guessed. Rule matching uses normalized whole phrases to reduce accidental matches.
+
+A category explicitly selected by the customer is stored as a manual override. Later Plaid updates refresh transaction details but do not replace that manual category. Categories generated automatically remain eligible for re-categorization when the provider sends an updated transaction. The `category_manually_set` column is introduced by Flyway migration V8.
+
+To verify, record a transaction with the category selector left on **Auto-categorize from merchant and description** (for example, merchant `SM Supermarket` and description `Weekly groceries`); the saved response should contain `GROCERIES`. Try a known merchant/description from another category and an unknown merchant (which should become `OTHER`). Import a Plaid transaction with `FOOD_AND_DRINK` and confirm it becomes `DINING`; then manually categorize a transaction and verify a later provider update preserves the chosen category.
+
+Run Transaction Service tests from the repository root:
+
+```bash
+./mvnw -pl transaction-service -am test
+```
+
+The categorizer and service tests cover built-in rules, provider-category mapping, unknown provider categories, conservative fallbacks, and preservation of manual overrides.
