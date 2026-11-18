@@ -677,6 +677,7 @@ class FinancialTransactionServiceImplTest {
                                 .merchant("Old merchant")
                                 .description("Old description")
                                 .category("Pets")
+                                .categoryManuallySet(true)
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(OffsetDateTime.now())
                                 .providerTransactionId(providerId)
