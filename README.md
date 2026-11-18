@@ -912,3 +912,17 @@ All endpoints require the Fintech bearer token:
 Customer identity is always derived from the validated JWT. The client cannot choose the customer ID for a connection. The Plaid access token is never returned to the browser or included in API responses.
 
 **Scope note:** ACC-008 implements the Plaid Link connection lifecycle and initial linked-account import. Fetching/synchronizing transaction records from Plaid into the Transaction Service is a separate transaction-import capability and is not claimed as complete by this story. Plaid Sandbox uses US test institutions; it is not a Philippine-bank integration.
+
+### ACC-009 — Protect external account credentials
+
+Plaid credentials are handled only by the Account Service. The one-time public token is accepted only by the exchange endpoint and is explicitly redacted from the request object's diagnostic string representation. Plaid access tokens are encrypted before persistence using AES-256-GCM with a fresh 96-bit nonce per encryption and authenticated 128-bit tags. The nonce and ciphertext are stored together; authentication failures are rejected rather than returning corrupted plaintext. Access tokens are decrypted only inside the Account Service immediately before the corresponding Plaid API operation. Connection/list and exchange responses expose connection metadata and linked account metadata only; they never include access tokens or the Plaid API secret.
+
+Configure `PLAID_CLIENT_ID`, `PLAID_SECRET`, and `PLAID_TOKEN_ENCRYPTION_KEY` together, or leave all three unset to keep Plaid disabled locally. Partial configuration fails application startup. Generate a 256-bit key with:
+
+```bash
+openssl rand -base64 32
+```
+
+Keep the key and provider credentials in an untracked local `.env` file for development and a deployment secret manager for hosted environments. Never commit them, print them, or include them in exception messages. Use TLS for all service and provider traffic. Restrict database access and backups because ciphertext remains sensitive data.
+
+**Key lifecycle:** losing the encryption key makes existing Plaid access tokens unrecoverable. Do not replace the key directly on a running environment. A production key rotation must decrypt each existing token with the old key and re-encrypt it with the new key in a controlled migration, with rollback and backup procedures. This story does not introduce a key-rotation endpoint or claim automatic rotation.
