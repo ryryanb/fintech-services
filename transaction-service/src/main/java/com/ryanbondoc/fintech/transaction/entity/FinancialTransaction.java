@@ -66,4 +66,8 @@ private String merchant;
 
     @Column(name = "provider_transaction_id", length = 150, unique = true)
     private String providerTransactionId;
+
+    @Column(name = "category_manually_set", nullable = false)
+    @Builder.Default
+    private boolean categoryManuallySet = false;
 }
