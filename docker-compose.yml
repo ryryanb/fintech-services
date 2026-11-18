@@ -19,6 +19,21 @@ services:
       - fintech-network
 
   # ============================================================
+  # AI Platform Database
+  # ============================================================
+
+  ai-db:
+    image: postgres:16
+    container_name: fintech-ai-db
+    environment:
+      POSTGRES_DB: ${AI_DB_NAME:-chat_db}
+      POSTGRES_USER: ${AI_DB_USERNAME:?Set AI_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${AI_DB_PASSWORD:?Set AI_DB_PASSWORD in .env}
+    volumes:
+      - ai-db-data:/var/lib/postgresql/data
+    networks:
+      - fintech-network
+  # ============================================================
   # Customer Database
   # ============================================================
 
@@ -165,6 +180,35 @@ services:
       - fintech-network
 
   # ============================================================
+  # AI Platform
+  # ============================================================
+
+  ai-platform:
+    image: ai-platform:latest
+    build:
+      context: ${AI_PLATFORM_BUILD_CONTEXT:-../ai-platform}
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8089
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ai-db:5432/${AI_DB_NAME:-chat_db}
+      SPRING_DATASOURCE_USERNAME: ${AI_DB_USERNAME:?Set AI_DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${AI_DB_PASSWORD:?Set AI_DB_PASSWORD in .env}
+      JWT_PUBLIC_KEY_PATH: file:/run/secrets/fintech-jwt-public.pem
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:4b}
+      APP_CORS_ALLOWED_ORIGINS: ${FRONTEND_BASE_URL:-http://localhost:5173}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    volumes:
+      - ./auth-service/keys/jwt-public.pem:/run/secrets/fintech-jwt-public.pem:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8089:8089"
+    depends_on:
+      - ai-db
+    networks:
+      - fintech-network
+  # ============================================================
   # Payment Service
   # ============================================================
 
@@ -214,6 +258,7 @@ services:
       - fintech-network
 
 volumes:
+  ai-db-data:
   auth-db-data:
   customer-db-data:
   account-db-data:
