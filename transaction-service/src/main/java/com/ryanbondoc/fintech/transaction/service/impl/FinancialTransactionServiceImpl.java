@@ -83,6 +83,7 @@ public class FinancialTransactionServiceImpl
                                 .currency(request.currency())
                                 .merchant(request.merchant())
                                 .category(category)
+                                .categoryManuallySet(request.category() != null && !request.category().isBlank())
                                 .description(request.description())
                                 .status(TransactionStatus.COMPLETED)
                                 .transactionDate(
@@ -140,8 +141,7 @@ public class FinancialTransactionServiceImpl
                                 ? TransactionType.DEPOSIT : TransactionType.PAYMENT;
                 // Preserve an existing category during provider updates so a user's
                 // manual correction is not silently overwritten by a later sync.
-                String category = existed && transaction.getCategory() != null
-                                && !transaction.getCategory().isBlank()
+                String category = existed && transaction.isCategoryManuallySet()
                                         ? transaction.getCategory()
                                         : java.util.Optional.ofNullable(
                                                         TransactionCategorizer.fromProviderCategory(imported.category()))
