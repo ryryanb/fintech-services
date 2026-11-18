@@ -639,4 +639,65 @@ class FinancialTransactionServiceImplTest {
                                 .save(any(FinancialTransaction.class));
         }
 
+
+        @Test
+        void shouldPreferProviderCategoryWhenImportingPlaidTransaction() {
+                UUID accountId = UUID.randomUUID();
+                String providerId = "plaid-food-789";
+                PlaidTransactionImportRequest.ImportedTransaction imported =
+                                new PlaidTransactionImportRequest.ImportedTransaction(
+                                                providerId, accountId, new BigDecimal("18.25"), "USD",
+                                                "Local merchant", "Local merchant", "FOOD_AND_DRINK",
+                                                OffsetDateTime.now(), false);
+                when(transactionRepository.findByProviderTransactionId(providerId))
+                                .thenReturn(Optional.empty());
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                transactionService.importPlaidTransactions(
+                                new PlaidTransactionImportRequest(List.of(imported), List.of(), List.of()),
+                                authentication);
+
+                ArgumentCaptor<FinancialTransaction> captor = ArgumentCaptor.forClass(FinancialTransaction.class);
+                verify(transactionRepository).save(captor.capture());
+                assertThat(captor.getValue().getCategory()).isEqualTo("DINING");
+        }
+
+        @Test
+        void shouldPreserveExistingCategoryWhenPlaidUpdatesTransaction() {
+                UUID accountId = UUID.randomUUID();
+                String providerId = "plaid-user-corrected-001";
+                FinancialTransaction existing = FinancialTransaction.builder()
+                                .id(UUID.randomUUID())
+                                .accountId(accountId)
+                                .type(TransactionType.PAYMENT)
+                                .direction(TransactionDirection.DEBIT)
+                                .amount(new BigDecimal("30.00"))
+                                .currency("USD")
+                                .merchant("Old merchant")
+                                .description("Old description")
+                                .category("Pets")
+                                .categoryManuallySet(true)
+                                .status(TransactionStatus.COMPLETED)
+                                .transactionDate(OffsetDateTime.now())
+                                .providerTransactionId(providerId)
+                                .build();
+                PlaidTransactionImportRequest.ImportedTransaction modified =
+                                new PlaidTransactionImportRequest.ImportedTransaction(
+                                                providerId, accountId, new BigDecimal("35.00"), "USD",
+                                                "New restaurant", "New restaurant", "FOOD_AND_DRINK",
+                                                OffsetDateTime.now(), false);
+                when(transactionRepository.findByProviderTransactionId(providerId))
+                                .thenReturn(Optional.of(existing));
+                when(transactionRepository.save(any(FinancialTransaction.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                transactionService.importPlaidTransactions(
+                                new PlaidTransactionImportRequest(List.of(), List.of(modified), List.of()),
+                                authentication);
+
+                assertThat(existing.getCategory()).isEqualTo("Pets");
+                assertThat(existing.getMerchant()).isEqualTo("New restaurant");
+                assertThat(existing.getAmount()).isEqualByComparingTo("35.00");
+        }
 }

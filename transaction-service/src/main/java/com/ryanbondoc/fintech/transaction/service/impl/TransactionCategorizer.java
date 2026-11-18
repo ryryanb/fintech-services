@@ -7,8 +7,8 @@ import com.ryanbondoc.fintech.transaction.entity.TransactionDirection;
 import com.ryanbondoc.fintech.transaction.entity.TransactionType;
 
 /**
- * Conservative, deterministic categorization for transactions without a
- * user-selected category. Explicit user choices always take precedence.
+ * Deterministic, conservative categorization. Explicit categories are resolved
+ * by the service before this class is called; unknown transactions remain OTHER.
  */
 public final class TransactionCategorizer {
 
@@ -21,58 +21,93 @@ public final class TransactionCategorizer {
             TransactionType type,
             TransactionDirection direction) {
 
-        String text = ((merchant == null ? "" : merchant) + " "
-                + (description == null ? "" : description))
-                .toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9 ]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        String text = normalize((merchant == null ? "" : merchant) + " "
+                + (description == null ? "" : description));
 
-        if (type == TransactionType.TRANSFER || containsAny(text, "transfer", "remittance", "wise", "remitly", "gcash send")) {
+        if (type == TransactionType.TRANSFER
+                || matches(text, "transfer", "remittance", "wise", "remitly", "gcash send")) {
             return TransactionCategory.TRANSFER;
         }
-        if (containsAny(text, "grocery", "groceries", "supermarket", "market basket", "puregold", "sm supermarket", "robinsons supermarket", "savemore")) {
+        if (matches(text, "grocery", "groceries", "supermarket", "puregold",
+                "sm supermarket", "robinsons supermarket", "savemore", "market basket")) {
             return TransactionCategory.GROCERIES;
         }
-        if (containsAny(text, "restaurant", "cafe", "coffee", "mcdonald", "jollibee", "foodpanda", "grabfood", "dining", "pizza", "kfc", "starbucks")) {
+        if (matches(text, "restaurant", "cafe", "coffee", "mcdonald", "jollibee",
+                "foodpanda", "grabfood", "dining", "pizza", "kfc", "starbucks")) {
             return TransactionCategory.DINING;
         }
-        if (containsAny(text, "grab ride", "grabcar", "angkas", "joyride", "taxi", "bus fare", "train fare", "lrt", "mrt", "jeepney", "fuel", "gas station", "shell", "petron")) {
+        if (matches(text, "grab ride", "grabcar", "angkas", "joyride", "taxi",
+                "bus fare", "train fare", "lrt", "mrt", "jeepney", "fuel",
+                "gas station", "shell", "petron")) {
             return TransactionCategory.TRANSPORTATION;
         }
-        if (containsAny(text, "electric bill", "electricity", "meralco", "water bill", "maynilad", "manila water", "internet bill", "wifi bill", "utility")) {
+        if (matches(text, "electric bill", "electricity", "meralco", "water bill",
+                "maynilad", "manila water", "internet bill", "wifi bill", "utility")) {
             return TransactionCategory.UTILITIES;
         }
-        if (containsAny(text, "rent", "landlord", "condominium dues", "mortgage", "housing")) {
+        if (matches(text, "rent", "landlord", "condominium dues", "mortgage", "housing")) {
             return TransactionCategory.HOUSING;
         }
-        if (containsAny(text, "hospital", "clinic", "pharmacy", "medicine", "medical", "healthcare", "doctor", "dental")) {
+        if (matches(text, "hospital", "clinic", "pharmacy", "medicine", "medical",
+                "healthcare", "doctor", "dental")) {
             return TransactionCategory.HEALTHCARE;
         }
-        if (containsAny(text, "airline", "airlines", "hotel", "booking.com", "airbnb", "flight", "travel", "resort")) {
+        if (matches(text, "airline", "airlines", "hotel", "booking.com", "airbnb",
+                "flight", "travel", "resort")) {
             return TransactionCategory.TRAVEL;
         }
-        if (containsAny(text, "netflix", "spotify", "cinema", "movie", "steam games", "concert", "entertainment", "youtube premium")) {
+        if (matches(text, "netflix", "spotify", "cinema", "movie", "steam games",
+                "concert", "entertainment", "youtube premium")) {
             return TransactionCategory.ENTERTAINMENT;
         }
-        if (containsAny(text, "salary", "payroll", "payday", "wages", "monthly pay")) {
+        if (matches(text, "salary", "payroll", "payday", "wages", "monthly pay")) {
             return TransactionCategory.SALARY;
         }
-        if (containsAny(text, "bank fee", "service fee", "late fee", "interest charge", "transaction fee", "annual fee")) {
+        if (matches(text, "bank fee", "service fee", "late fee", "interest charge",
+                "transaction fee", "annual fee")) {
             return TransactionCategory.FEES;
         }
-        if (containsAny(text, "shopee", "lazada", "mall", "department store", "clothing", "apparel", "shopping")) {
+        if (matches(text, "shopee", "lazada", "mall", "department store",
+                "clothing", "apparel", "shopping")) {
             return TransactionCategory.SHOPPING;
-        }
-        if (type == TransactionType.DEPOSIT && direction == TransactionDirection.CREDIT) {
-            return TransactionCategory.SALARY;
         }
         return TransactionCategory.OTHER;
     }
 
-    private static boolean containsAny(String text, String... keywords) {
-        for (String keyword : keywords) {
-            if (text.contains(keyword)) {
+    /**
+     * Maps Plaid's Personal Finance Category primary taxonomy to this app's
+     * smaller category vocabulary. Returns null for unknown provider values.
+     */
+    public static TransactionCategory fromProviderCategory(String providerCategory) {
+        if (providerCategory == null || providerCategory.isBlank()) {
+            return null;
+        }
+        return switch (providerCategory.trim().toUpperCase(Locale.ROOT)) {
+            case "FOOD_AND_DRINK" -> TransactionCategory.DINING;
+            case "GENERAL_MERCHANDISE" -> TransactionCategory.SHOPPING;
+            case "TRANSPORTATION" -> TransactionCategory.TRANSPORTATION;
+            case "TRAVEL" -> TransactionCategory.TRAVEL;
+            case "ENTERTAINMENT" -> TransactionCategory.ENTERTAINMENT;
+            case "MEDICAL" -> TransactionCategory.HEALTHCARE;
+            case "RENT_AND_UTILITIES" -> TransactionCategory.UTILITIES;
+            case "INCOME" -> TransactionCategory.SALARY;
+            case "TRANSFER_IN", "TRANSFER_OUT" -> TransactionCategory.TRANSFER;
+            case "LOAN_PAYMENTS" -> TransactionCategory.FEES;
+            default -> null;
+        };
+    }
+
+    private static String normalize(String value) {
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private static boolean matches(String text, String... phrases) {
+        for (String phrase : phrases) {
+            String normalizedPhrase = normalize(phrase);
+            if ((" " + text + " ").contains(" " + normalizedPhrase + " ")) {
                 return true;
             }
         }

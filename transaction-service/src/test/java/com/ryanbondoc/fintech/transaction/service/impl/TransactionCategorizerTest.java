@@ -44,4 +44,44 @@ class TransactionCategorizerTest {
                 "Acme", "Payment", TransactionType.PAYMENT, TransactionDirection.DEBIT))
                 .isEqualTo(TransactionCategory.OTHER);
     }
+
+    @Test
+    void doesNotClassifyAnUnidentifiedCreditAsSalary() {
+        assertThat(TransactionCategorizer.categorize(
+                "Acme", "Incoming transfer", TransactionType.DEPOSIT, TransactionDirection.CREDIT))
+                .isEqualTo(TransactionCategory.TRANSFER);
+        assertThat(TransactionCategorizer.categorize(
+                "Acme", "Cash deposit", TransactionType.DEPOSIT, TransactionDirection.CREDIT))
+                .isEqualTo(TransactionCategory.OTHER);
+    }
+
+    @Test
+    void mapsPlaidFoodAndDrinkCategory() {
+        assertThat(TransactionCategorizer.fromProviderCategory("FOOD_AND_DRINK"))
+                .isEqualTo(TransactionCategory.DINING);
+    }
+
+    @Test
+    void mapsPlaidMedicalAndTransportCategories() {
+        assertThat(TransactionCategorizer.fromProviderCategory("MEDICAL"))
+                .isEqualTo(TransactionCategory.HEALTHCARE);
+        assertThat(TransactionCategorizer.fromProviderCategory("TRANSPORTATION"))
+                .isEqualTo(TransactionCategory.TRANSPORTATION);
+    }
+
+    @Test
+    void returnsNullForUnknownProviderCategorySoMerchantRulesCanBeUsed() {
+        assertThat(TransactionCategorizer.fromProviderCategory("SOMETHING_NEW")).isNull();
+        assertThat(TransactionCategorizer.fromProviderCategory(null)).isNull();
+    }
+
+    @Test
+    void matchesMerchantPhrasesWithoutMatchingUnrelatedSubstrings() {
+        assertThat(TransactionCategorizer.categorize(
+                "Shell", "Fuel purchase", TransactionType.PAYMENT, TransactionDirection.DEBIT))
+                .isEqualTo(TransactionCategory.TRANSPORTATION);
+        assertThat(TransactionCategorizer.categorize(
+                "Michelle's Crafts", "Handmade gift", TransactionType.PAYMENT, TransactionDirection.DEBIT))
+                .isEqualTo(TransactionCategory.OTHER);
+    }
 }
