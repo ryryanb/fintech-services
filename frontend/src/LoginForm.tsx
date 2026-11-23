@@ -359,6 +359,10 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
             window.history.pushState(null, '', '/transactions');
             setCurrentPath('/transactions');
           }}
+          onAskAI={() => {
+            window.history.pushState(null, '', '/assistant');
+            setCurrentPath('/assistant');
+          }}
         />
       </ProtectedRoute>
     );
