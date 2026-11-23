@@ -76,7 +76,7 @@ function LockIcon() {
 
 function App() {
   const [showLogin, setShowLogin] = useState(() => ['/login', '/profile', '/accounts', '/payments/new', '/payment/success', '/payment/paypal/return',
-    '/payment/paypal/cancel',].includes(window.location.pathname));
+    '/payment/paypal/cancel', '/assistant',].includes(window.location.pathname));
 
   useEffect(() => {
     function syncRoute() {
