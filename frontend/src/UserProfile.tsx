@@ -14,7 +14,8 @@ type UserProfileData = {
 type UserProfileProps = {
   onSignOut: () => void;
   onViewAccounts: () => void;
-  onViewTransactions: () => void;\n  onAskAI: () => void;
+  onViewTransactions: () => void;
+  onAskAI: () => void;
 };
 
 function getUserIdFromToken(token: string): string | null {
@@ -225,7 +226,8 @@ export default function UserProfile({ onSignOut, onViewAccounts, onViewTransacti
         </a>
         <div className="topbar-prompt profile-nav-actions">
           <button className="text-link" type="button" onClick={onViewAccounts}>Financial accounts</button>
-          <button className="text-link" type="button" onClick={onViewTransactions}>Transactions</button>\n          <button className="text-link" type="button" onClick={onAskAI}>Ask AI</button>
+          <button className="text-link" type="button" onClick={onViewTransactions}>Transactions</button>
+          <button className="text-link" type="button" onClick={onAskAI}>Ask AI</button>
           <button className="text-link" type="button" onClick={onSignOut}>Sign out</button>
         </div>
       </header>
