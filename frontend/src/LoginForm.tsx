@@ -10,7 +10,7 @@ import TransactionDetails from './TransactionDetails';
 import SpendingCategories from './SpendingCategories';
 import PaymentForm from './PaymentForm';
 import PaymentCompletion from './PaymentCompletion';
-import PaymentStatus from './PaymentStatus';
+import PaymentStatus from './PaymentStatus';\nimport FinanceAssistant from './FinanceAssistant';
 
 type LoginFormProps = {
   onCreateAccount: () => void;
@@ -49,7 +49,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
   useEffect(() => {
     function syncPath() {
       const path = window.location.pathname;
-      if (!isAuthenticated && (['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new', '/categories', '/payments/new', '/payments/complete', '/payments/status'].includes(path) || /^\/transactions\/[^/]+$/.test(path))) {
+      if (!isAuthenticated && (['/profile', '/accounts', '/accounts/new', '/transactions', '/transactions/new', '/categories', '/assistant', '/payments/new', '/payments/complete', '/payments/status'].includes(path) || /^\/transactions\/[^/]+$/.test(path))) {
         window.history.replaceState(null, '', '/login');
         setCurrentPath('/login');
         return;
@@ -202,7 +202,7 @@ export default function LoginForm({ onCreateAccount }: LoginFormProps) {
     );
   }
 
-  if (isAuthenticated && currentPath === '/categories') {
+  if (isAuthenticated && currentPath === '/assistant') {\n    return <ProtectedRoute isAuthenticated={isAuthenticated}><FinanceAssistant onBack={() => { window.history.pushState(null, '', '/profile'); setCurrentPath('/profile'); }} onSignOut={() => { clearAccessToken(); setIsAuthenticated(false); window.history.replaceState(null, '', '/login'); setCurrentPath('/login'); }} /></ProtectedRoute>;\n  }\n\n  if (isAuthenticated && currentPath === '/categories') {
     return <ProtectedRoute isAuthenticated={isAuthenticated}><SpendingCategories onBack={() => { window.history.pushState(null, '', '/transactions'); setCurrentPath('/transactions'); }} onSignOut={() => { clearAccessToken(); setIsAuthenticated(false); window.history.replaceState(null, '', '/login'); setCurrentPath('/login'); }} /></ProtectedRoute>;
   }
 
