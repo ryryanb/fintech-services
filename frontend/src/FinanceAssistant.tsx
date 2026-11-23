@@ -3,7 +3,7 @@ import { getAccessToken } from './authSession';
 
 type Conversation = { id: string; title: string | null; };
 type Message = { id: string; role: 'USER' | 'ASSISTANT'; content: string; createdAt: string };
-const API = import.meta.env.VITE_AI_API_BASE_URL ?? 'http://localhost:8089/api';
+const API = 'http://localhost:8089/api';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
