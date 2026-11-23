@@ -81,7 +81,7 @@ function App() {
   useEffect(() => {
     function syncRoute() {
       setShowLogin(['/login', '/profile', '/accounts', '/payments/new', '/payment/success', '/payment/paypal/return',
-        '/payment/paypal/cancel',].includes(window.location.pathname));
+        '/payment/paypal/cancel', '/assistant',].includes(window.location.pathname));
     }
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
