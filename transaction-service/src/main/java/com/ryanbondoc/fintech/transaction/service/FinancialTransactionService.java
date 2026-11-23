@@ -2,21 +2,17 @@ package com.ryanbondoc.fintech.transaction.service;
 
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.security.core.Authentication;
-
+import com.ryanbondoc.fintech.transaction.dto.FinancialContextResponse;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
 
 public interface FinancialTransactionService {
-
     List<TransactionResponse> getTransactions(UUID accountId, Authentication authentication);
-
     TransactionResponse createTransaction(TransactionRequest request, Authentication authentication);
-
     TransactionResponse getTransaction(UUID transactionId, Authentication authentication);
-
     PlaidTransactionImportResponse importPlaidTransactions(PlaidTransactionImportRequest request, Authentication authentication);
+    FinancialContextResponse getFinancialContext(int periodDays, int limit, Authentication authentication);
 }
