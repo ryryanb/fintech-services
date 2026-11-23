@@ -208,6 +208,7 @@ services:
     depends_on:
       - ai-db
       - transaction-service
+      - transaction-service
     networks:
       - fintech-network
   # ============================================================
