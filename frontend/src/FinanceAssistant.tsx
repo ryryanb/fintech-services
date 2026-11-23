@@ -86,8 +86,8 @@ export default function FinanceAssistant({ onBack, onSignOut }: { onBack: () => 
       const now = new Date().toISOString();
       const assistantId = crypto.randomUUID();
       setMessages(current => [...current,
-        { id: crypto.randomUUID(), role: 'USER', content, createdAt: now },
-        { id: assistantId, role: 'ASSISTANT', content: '', createdAt: now },
+      { id: crypto.randomUUID(), role: 'USER', content, createdAt: now },
+      { id: assistantId, role: 'ASSISTANT', content: '', createdAt: now },
       ]);
       setQuestion('');
       const token = getAccessToken();
@@ -128,7 +128,7 @@ export default function FinanceAssistant({ onBack, onSignOut }: { onBack: () => 
         <h1 id="assistant-title">Ask about your money<span>.</span></h1>
         <p className="intro-copy">Ask questions about your transactions, spending patterns, income, and categories.</p>
       </div>
-      <div className="form-card" style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 260px) minmax(0, 1fr)', gap: '1.25rem', minHeight: '520px' }}>
+      <div className="form-card assistant-chat-card">
         <aside aria-label="Conversation history">
           <button className="submit-button" type="button" onClick={() => void newConversation()}>+ New conversation</button>
           <div style={{ display: 'grid', gap: '.5rem', marginTop: '1rem' }}>
