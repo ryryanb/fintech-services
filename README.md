@@ -5,6 +5,25 @@ FinTech Services is a production-oriented financial services platform under acti
 The project focuses on building a realistic financial-services backend with clear service boundaries, domain ownership, security, persistence, validation, testing, and incremental architectural evolution.
 
 > **Project status:** Active development
+
+## Related repository: AI Platform
+
+The AI assistant backend is maintained in a separate repository:
+
+- **AI Platform:** [https://github.com/ryryanb/ai-platform](https://github.com/ryryanb/ai-platform)
+
+FinTech Services is the main financial application and owns the active customer-facing React frontend in `frontend/`. The AI Platform repository supplies the Spring Boot AI API, Spring AI/Ollama integration, and persistent conversation services. The AI Platform's own React frontend is a standalone/reference interface; it is **not** the frontend served by FinTech Services.
+
+For the default local Docker Compose build, clone both repositories as sibling directories:
+
+```text
+workspace/
+├── fintech-services/
+└── ai-platform/
+```
+
+The `fintech-services/docker-compose.yml` builds the AI Platform service from `../ai-platform` by default. If you keep the repositories elsewhere, set `AI_PLATFORM_BUILD_CONTEXT` in the untracked root `.env` file to the AI Platform repository path. The Compose setup also mounts the AI Platform's JWT verification public key from `../ai-platform/keys/jwt-public.pem`; that key must match the public key corresponding to the Auth Service's private signing key.
+
 ## AI Assistant
 
 ![AI Assistant](docs/images/ai-assistant.png)
@@ -640,55 +659,43 @@ Potential payment-provider integrations include Stripe and PayPal.
 
 ---
 
-# 🤖 Planned AI Capabilities
+# 🤖 AI-Assisted Financial Services
 
-AI is a long-term extension of the platform rather than a replacement for the deterministic financial services.
+FinTech Services integrates with the separately maintained [AI Platform](https://github.com/ryryanb/ai-platform) to provide a conversational financial assistant.
 
-The planned AI architecture follows an important principle:
-
-> **AI assists with financial analysis and interaction; authoritative backend services remain the source of truth for financial state.**
-
-Planned capabilities include:
+> **Architectural principle:** AI assists with financial analysis and interaction; authoritative backend services remain the source of truth for financial state.
 
 ### Financial Assistant
 
-Natural-language interaction with financial information.
+The active FinTech Services frontend provides the customer-facing chat experience. It communicates with the AI Platform's authenticated Spring Boot API for conversation management and AI responses.
 
-Examples:
+Implemented capabilities include:
 
-```text
-How much did I spend on food this month?
+* Authenticated conversation creation, listing, and history
+* Customer-scoped conversation access
+* Synchronous and progressively streamed AI responses
+* Markdown-formatted assistant messages in the FinTech Services frontend
+* Automatic scrolling and distinct user/assistant message presentation
+* Persistent conversation and message storage in the AI Platform PostgreSQL database
+* Local LLM inference through Ollama (currently configured for `qwen3:4b`)
 
-Why did my spending increase this month?
+### Financial transaction context
 
-Show me my largest recurring expenses.
+For financial questions, the AI Platform retrieves bounded transaction context from the Transaction Service through its authenticated `GET /transactions/ai-context` endpoint. It forwards the verified customer's bearer token, and the Transaction Service limits the returned data to accounts belonging to that customer. The AI Platform uses this structured context when constructing the prompt sent to Ollama.
 
-Can I afford to spend ₱5,000 this weekend?
-```
+This is API-based retrieval and LLM context augmentation. It is **not conventional vector-based RAG**: the current implementation does not use embeddings or a vector database for semantic document retrieval.
 
-### Spending Analysis
+### Service boundaries and data ownership
 
-Potential capabilities include:
+* FinTech Services owns authentication, customer/account/transaction/payment domains, and the active application frontend.
+* The AI Platform owns AI conversations, messages, prompt construction, and model integration.
+* The Transaction Service remains authoritative for transaction data; the AI Platform does not connect directly to the financial services databases.
+* The AI Platform validates FinTech-issued JWTs using the matching RSA public key. Customer identity is derived from the token, not from a customer ID supplied in a chat request.
+* Ollama performs model inference; AI-generated responses should be treated as assistance and verified before making important financial decisions.
 
-* Spending-pattern analysis
-* Category analysis
-* Recurring-expense identification
-* Financial summaries
-* Trend analysis
+The AI Platform README contains its standalone setup instructions, API details, and technology overview: [AI Platform README](https://github.com/ryryanb/ai-platform#readme).
 
-### Anomaly Detection
-
-AI-assisted analysis may eventually identify potentially unusual financial activity and surface it to users.
-
-### RAG
-
-Retrieval-augmented generation may be introduced where it provides meaningful value, particularly for combining financial data with approved financial knowledge and contextual information.
-
-### Agent Workflows
-
-Agent-based workflows may eventually be introduced for selected financial tasks.
-
-These capabilities remain **planned** and are not currently part of the implemented platform.
+Vector-based RAG, anomaly detection, and agent workflows remain possible future enhancements; they are not claimed as implemented features.
 
 ---
 
@@ -736,7 +743,17 @@ These capabilities remain **planned** and are not currently part of the implemen
 
 ## Phase 4 — AI-Assisted Financial Services
 
-**Planned**
+**In progress**
+
+* [x] AI Platform service integration
+* [x] Authenticated customer conversations
+* [x] Streaming AI responses
+* [x] Transaction context retrieval through the Transaction Service
+* [x] Ollama-based inference
+* [ ] Expanded financial analysis and evaluation
+* [ ] Vector-based RAG
+* [ ] Anomaly detection
+* [ ] Selected agent workflows
 
 * [ ] AI financial assistant
 * [ ] Financial data analysis
