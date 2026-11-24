@@ -5,6 +5,17 @@ FinTech Services is a production-oriented financial services platform under acti
 The project focuses on building a realistic financial-services backend with clear service boundaries, domain ownership, security, persistence, validation, testing, and incremental architectural evolution.
 
 > **Project status:** Active development
+## AI Assistant
+
+![AI Assistant](docs/images/ai-assistant.png)
+
+## Connect Your Bank
+
+![Connect Your Bank](docs/images/externalprovider.png)
+
+## Make a Payment
+
+![Make a Payment](docs/images/makeapayment.png)
 
 ## Registration
 
