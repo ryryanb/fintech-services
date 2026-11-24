@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import MarkdownMessage from './MarkdownMessage';
 import { getAccessToken } from './authSession';
 
 type Conversation = { id: string; title: string | null; };
@@ -23,6 +24,11 @@ export default function FinanceAssistant({ onBack, onSignOut }: { onBack: () => 
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: loading ? 'auto' : 'smooth', block: 'end' });
+  }, [messages, loading]);
 
   async function loadMessages(id: string) {
     const data = await request<Message[]>(`/conversations/${id}/messages`);
@@ -135,10 +141,19 @@ export default function FinanceAssistant({ onBack, onSignOut }: { onBack: () => 
             {conversations.map(c => <button key={c.id} className="secondary-button" type="button" onClick={() => void selectConversation(c.id)} aria-current={selectedId === c.id ? 'true' : undefined}>{c.title || 'New conversation'}</button>)}
           </div>
         </aside>
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div aria-live="polite" style={{ flex: 1, overflowY: 'auto', minHeight: '300px', display: 'grid', alignContent: 'start', gap: '1rem', padding: '.5rem 0 1rem' }}>
-            {messages.length === 0 && <div><h2>What would you like to understand?</h2><p className="profile-message">Try “How much did I spend on groceries in the last 30 days?” or “What were my biggest expenses this month?”</p></div>}
-            {messages.map(m => <article key={m.id} style={{ padding: '1rem', borderRadius: '12px', background: m.role === 'USER' ? 'var(--surface-subtle, #f3f5f7)' : 'transparent' }}><strong>{m.role === 'USER' ? 'You' : 'Fintech AI'}</strong><p style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>{m.content || (loading ? 'Thinking…' : '')}</p></article>)}
+        <div className="assistant-chat-main">
+          <div className="assistant-messages" aria-live="polite" aria-relevant="additions text">
+            {messages.length === 0 && <div className="assistant-empty-state"><h2>What would you like to understand?</h2><p className="profile-message">Try “How much did I spend on groceries in the last 30 days?” or “What were my biggest expenses this month?”</p></div>}
+            {messages.map(m => <article key={m.id} className={'assistant-message assistant-message-' + m.role.toLowerCase()}>
+              <div className="assistant-message-header">
+                <span className="assistant-message-author">{m.role === 'USER' ? 'You' : 'Fintech AI'}</span>
+                {m.createdAt && <time dateTime={m.createdAt}>{new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>}
+              </div>
+              {m.content
+                ? <MarkdownMessage content={m.content} />
+                : loading && m.role === 'ASSISTANT' ? <span className="assistant-thinking"><i /><i /><i /><span className="sr-only">Thinking…</span></span> : null}
+            </article>)}
+            <div ref={messagesEndRef} aria-hidden="true" />
           </div>
           {error && <p className="record-feedback record-feedback-error" role="alert">{error}</p>}
           <form onSubmit={sendQuestion} style={{ display: 'grid', gap: '.75rem' }}>
