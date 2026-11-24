@@ -196,16 +196,18 @@ services:
       JWT_PUBLIC_KEY_PATH: file:/run/secrets/fintech-jwt-public.pem
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:4b}
+      FINTECH_TRANSACTION_BASE_URL: http://transaction-service:8087
       APP_CORS_ALLOWED_ORIGINS: ${FRONTEND_BASE_URL:-http://localhost:5173}
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
     volumes:
-      - ./auth-service/keys/jwt-public.pem:/run/secrets/fintech-jwt-public.pem:ro
+      - ../ai-platform/keys/jwt-public.pem:/run/secrets/fintech-jwt-public.pem:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
       - "8089:8089"
     depends_on:
       - ai-db
+      - transaction-service
     networks:
       - fintech-network
   # ============================================================

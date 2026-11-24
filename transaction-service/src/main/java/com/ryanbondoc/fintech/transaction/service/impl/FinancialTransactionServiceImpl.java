@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ryanbondoc.fintech.transaction.client.AccountServiceClient;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
+import com.ryanbondoc.fintech.transaction.dto.FinancialContextResponse;
+import com.ryanbondoc.fintech.transaction.client.CustomerAccountResponse;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
 import com.ryanbondoc.fintech.transaction.dto.TransactionResponse;
@@ -161,6 +163,27 @@ public class FinancialTransactionServiceImpl
                 transaction.setTransactionDate(imported.transactionDate());
                 transactionRepository.save(transaction);
                 return existed;
+        }
+
+
+        @Override
+        @Transactional(readOnly = true)
+        public FinancialContextResponse getFinancialContext(int periodDays, int limit, Authentication authentication) {
+                if (periodDays < 1 || periodDays > 365 || limit < 1 || limit > 500) {
+                        throw new IllegalArgumentException("days must be 1-365 and limit must be 1-500");
+                }
+                String bearerToken = extractBearerToken(authentication);
+                List<UUID> accountIds = accountServiceClient.getCustomerAccounts(bearerToken)
+                                .stream().map(CustomerAccountResponse::id).filter(java.util.Objects::nonNull).toList();
+                if (accountIds.isEmpty()) {
+                        return new FinancialContextResponse(periodDays, 0, false, List.of());
+                }
+                OffsetDateTime from = OffsetDateTime.now().minusDays(periodDays);
+                List<FinancialTransaction> recent = transactionRepository
+                                .findByAccountIdInAndTransactionDateGreaterThanEqualOrderByTransactionDateDesc(accountIds, from);
+                boolean truncated = recent.size() > limit;
+                List<TransactionResponse> transactions = recent.stream().limit(limit).map(this::toResponse).toList();
+                return new FinancialContextResponse(periodDays, transactions.size(), truncated, transactions);
         }
 
         private String resolveCategory(TransactionRequest request, Authentication authentication) {

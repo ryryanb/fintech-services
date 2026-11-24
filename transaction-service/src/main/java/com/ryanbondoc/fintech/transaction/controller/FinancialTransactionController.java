@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ryanbondoc.fintech.transaction.dto.FinancialContextResponse;
 import com.ryanbondoc.fintech.transaction.dto.TransactionRequest;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportRequest;
 import com.ryanbondoc.fintech.transaction.dto.PlaidTransactionImportResponse;
@@ -32,56 +33,41 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
 public class FinancialTransactionController {
-
     private final FinancialTransactionService transactionService;
 
     @Operation(summary = "Get transactions", description = "Get transactions of a specific account of the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping
-    public List<TransactionResponse> getTransactions(
-            @RequestParam UUID accountId,
-            Authentication authentication) {
-
+    public List<TransactionResponse> getTransactions(@RequestParam UUID accountId, Authentication authentication) {
         return transactionService.getTransactions(accountId, authentication);
+    }
+
+    @Operation(summary = "Get financial context for AI questions", description = "Returns a bounded recent transaction history across accounts owned by the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Financial context retrieved"), @ApiResponse(responseCode = "401", description = "Authentication required")})
+    @GetMapping("/ai-context")
+    public FinancialContextResponse getFinancialContext(
+            @RequestParam(defaultValue = "90") int days,
+            @RequestParam(defaultValue = "250") int limit,
+            Authentication authentication) {
+        return transactionService.getFinancialContext(days, limit, authentication);
     }
 
     @Operation(summary = "Create a financial transaction", description = "Creates a transaction for an account owned by the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TransactionResponse createTransaction(
-            @Valid @RequestBody TransactionRequest request,
-            Authentication authentication) {
-
+    public TransactionResponse createTransaction(@Valid @RequestBody TransactionRequest request, Authentication authentication) {
         return transactionService.createTransaction(request, authentication);
     }
 
     @Operation(summary = "Import Plaid transactions", description = "Upserts provider transactions and removes transactions deleted by the provider.", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/import/plaid")
-    public PlaidTransactionImportResponse importPlaidTransactions(
-            @Valid @RequestBody PlaidTransactionImportRequest request, Authentication authentication) {
+    public PlaidTransactionImportResponse importPlaidTransactions(@Valid @RequestBody PlaidTransactionImportRequest request, Authentication authentication) {
         return transactionService.importPlaidTransactions(request, authentication);
     }
 
-    @Operation(summary = "Get transaction by ID", description = """
-            Retrieves a financial transaction.
-
-            Access is restricted to the customer who owns
-            the account associated with the transaction.
-            """, security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Transaction retrieved successfully"),
-            @ApiResponse(responseCode = "401", description = "Authentication required"),
-            @ApiResponse(responseCode = "403", description = "Authenticated customer does not own the account"),
-            @ApiResponse(responseCode = "404", description = "Transaction not found")
-    })
+    @Operation(summary = "Get transaction by ID", description = "Retrieves a financial transaction owned by the authenticated customer.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Transaction retrieved successfully"), @ApiResponse(responseCode = "401", description = "Authentication required"), @ApiResponse(responseCode = "403", description = "Authenticated customer does not own the account"), @ApiResponse(responseCode = "404", description = "Transaction not found")})
     @GetMapping("/{transactionId}")
-    public ResponseEntity<TransactionResponse> getTransaction(
-            @PathVariable UUID transactionId,
-            Authentication authentication) {
-
-        TransactionResponse response = transactionService.getTransaction(
-                transactionId,
-                authentication);
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<TransactionResponse> getTransaction(@PathVariable UUID transactionId, Authentication authentication) {
+        return ResponseEntity.ok(transactionService.getTransaction(transactionId, authentication));
     }
 }
